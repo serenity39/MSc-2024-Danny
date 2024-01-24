@@ -1,4 +1,4 @@
-"""Example of a main file."""
+"""Example of a file."""
 
 import argparse
 import logging
@@ -12,7 +12,7 @@ logger.setLevel(logging.INFO)
 
 
 def main(args: argparse.Namespace) -> None:
-    """Main function.
+    """Run the main function.
 
     Args:
         args: Arguments from command-line call.
@@ -22,7 +22,7 @@ def main(args: argparse.Namespace) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    """Parses arguments from command-line call.
+    """Parse arguments from command-line call.
 
     Returns:
         Arguments from command-line call.
