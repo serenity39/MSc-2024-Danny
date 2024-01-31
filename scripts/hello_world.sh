@@ -6,5 +6,4 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=100MB
 
-module load python39
-python3 hello_world.py
+python3 ../code/hello_world.py
