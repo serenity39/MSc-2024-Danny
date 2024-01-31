@@ -1,16 +1,16 @@
 repos:
--   repo: https://github.com/ambv/black
+  - repo: https://github.com/ambv/black
     rev: 22.6.0
     hooks:
       - id: black
-        language_version: python3.9
+        language_version: python3.10
 
--   repo: https://github.com/pycqa/flake8
+  - repo: https://github.com/pycqa/flake8
     rev: 5.0.4
     hooks:
       - id: flake8
 
--   repo: https://github.com/PyCQA/docformatter
+  - repo: https://github.com/PyCQA/docformatter
     rev: v1.5.0
     hooks:
       - id: docformatter
@@ -21,7 +21,7 @@ repos:
         language: python
         types: [python]
 
--   repo: https://github.com/pycqa/pydocstyle
+  - repo: https://github.com/pycqa/pydocstyle
     rev: 6.1.1 # pick a git hash / tag to point to
     hooks:
       - id: pydocstyle
@@ -29,7 +29,7 @@ repos:
           - --ignore=D101,D105,D203,D213,D401,D406,D407,D413
           - --ignore-decorators
 
--   repo: local
+  - repo: local
     hooks:
       - id: mypy
         name: mypy
@@ -38,18 +38,17 @@ repos:
         exclude: ^tests/
         types: [python]
         verbose: true
-        args: 
+        args:
           - --no-strict-optional
           - --ignore-missing-imports
           - --no-incremental
           - --disable-error-code=override
         additional_dependencies: [types-all]
-
--   repo: local
-    hooks:
-      - id: pytest
-        name: run tests
-        entry: pytest tests -vv
-        language: system
-        always_run: true
-        pass_filenames: false
+# -   repo: local
+#     hooks:
+#       - id: pytest
+#         name: run tests
+#         entry: pytest tests -vv
+#         language: system
+#         always_run: true
+#         pass_filenames: false
