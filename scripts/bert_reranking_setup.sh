@@ -14,7 +14,7 @@ conda activate pygaggle
 pip install --upgrade pip
 python3 -m pip install --upgrade setuptools
 pip install tensorflow
-conda install -c conda forge pytorch faiss-cpu -y
+conda install -c conda-forge pytorch faiss-cpu -y
 pip install faiss-gpu
 cd ..
 pip install -r requirements.txt

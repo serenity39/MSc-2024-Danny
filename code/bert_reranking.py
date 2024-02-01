@@ -1,4 +1,4 @@
-"""BERT reranking model."""
+"""BERT reranking example."""
 
 from pygaggle.rerank.base import Query, hits_to_texts
 from pygaggle.rerank.transformer import MonoBERT

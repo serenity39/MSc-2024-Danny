@@ -4,7 +4,7 @@
 #SBATCH --output=bert_reranking.out
  
 # Activate environment
-uenv miniconda-python310
+uenv miniconda-python39
 conda activate pygaggle
 
 # Run the Python script
