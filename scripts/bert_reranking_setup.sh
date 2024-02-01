@@ -4,7 +4,7 @@
 #SBATCH --output=bert_reranking_setup.out
 
 # Set up environment
-uenv miniconda-python310
+uenv miniconda-python39
 conda create -n pygaggle pip python=3.10 -y
 
 # Activate environment
