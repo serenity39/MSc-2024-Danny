@@ -8,6 +8,7 @@ a BERT model for pre-training, and runs the training process.
   python pretrain_bert.py
 """
 
+import logging
 import os
 
 # Specify the GPU ID to use
@@ -21,6 +22,11 @@ from transformers import (  # noqa: E402
     BertForPreTraining,
     BertTokenizer,
     get_linear_schedule_with_warmup,
+)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 # Configuration
@@ -125,6 +131,10 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
         outputs = model(**batch_on_device)
         loss = outputs.loss
 
+        if loss is None:
+            logging.error(f"Loss is None at step {step}.")
+            continue  # Skip the rest of the loop and move to the next batch
+
         # Backward pass and optimization
         optimizer.zero_grad()
         loss.backward()
@@ -136,7 +146,7 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
 
         # Logging after every 1000 steps
         if step % 1000 == 0:
-            print(f"Step {step} - loss: {loss.item()}")
+            logging.info(f"Step {step} - loss: {loss.item()}")
 
         # Checkpoint saving
         if step % 1000 == 0:
