@@ -10,6 +10,7 @@ a BERT model for pre-training, and runs the training process.
 
 import logging
 import os
+from random import random
 
 # Specify the GPU ID to use
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -17,7 +18,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import torch  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
 from transformers import (  # noqa: E402
-    AdamW,
     BertConfig,
     BertForPreTraining,
     BertTokenizer,
@@ -86,10 +86,24 @@ class MSMARCODataset(Dataset):
         attention_mask = inputs["attention_mask"]
         token_type_ids = inputs["token_type_ids"]
 
+        # Simulate masking 15% of tokens for MLM task
+        mlm_labels = [-100] * len(
+            input_ids
+        )  # Initialize with -100 to ignore unmasked tokens
+        for i in range(len(input_ids)):
+            if random.random() < 0.15:  # 15% chance to mask a token
+                mlm_labels[i] = input_ids[i]  # The label is the original token
+                input_ids[i] = self.tokenizer.mask_token_id  # Mask the token
+
+        # For NSP, assuming every passage follows the query, label is 0
+        nsp_label = 0
+
         return {
             "input_ids": torch.tensor(input_ids, dtype=torch.long),
             "attention_mask": torch.tensor(attention_mask, dtype=torch.long),
             "token_type_ids": torch.tensor(token_type_ids, dtype=torch.long),
+            "labels": torch.tensor(mlm_labels, dtype=torch.long),
+            "next_sentence_label": torch.tensor([nsp_label], dtype=torch.long),
         }
 
 
@@ -129,6 +143,7 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
 
         # Forward pass
         outputs = model(**batch_on_device)
+        logging.info(f"Model outputs: {outputs}")
         loss = outputs.loss
 
         if loss is None:
@@ -154,8 +169,7 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
                 f"{save_path}_checkpoint_epoch_{epoch}_step_{step}.bin"
             )
             torch.save(model.state_dict(), checkpoint_path)
-            print(f"Checkpoint saved to {checkpoint_path}")
-
+            logging.info(f"Checkpoint saved to {checkpoint_path}")
     return total_loss
 
 
@@ -174,7 +188,7 @@ def main():
     model.to(device)
 
     # Prepare optimizer
-    optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=WARMUP_STEPS, num_training_steps=MAX_STEPS
     )
@@ -190,11 +204,11 @@ def main():
             epoch=epoch,
             save_path=MODEL_SAVE_PATH,
         )
-        print(f"Epoch {epoch} - Total loss: {total_loss}")
+        logging.info(f"Epoch {epoch} - Total loss: {total_loss}")
 
     # Save the pre-trained model
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
-    print(f"Pre-trained model saved to {MODEL_SAVE_PATH}")
+    logging.info(f"Pre-trained model saved to {MODEL_SAVE_PATH}")
 
 
 if __name__ == "__main__":
