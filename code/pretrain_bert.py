@@ -91,7 +91,7 @@ class MSMARCODataset(Dataset):
             input_ids
         )  # Initialize with -100 to ignore unmasked tokens
         for i in range(len(input_ids)):
-            if random.random() < 0.15:  # 15% chance to mask a token
+            if random() < 0.15:  # 15% chance to mask a token
                 mlm_labels[i] = input_ids[i]  # The label is the original token
                 input_ids[i] = self.tokenizer.mask_token_id  # Mask the token
 
