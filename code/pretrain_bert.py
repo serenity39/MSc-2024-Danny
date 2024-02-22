@@ -10,9 +10,12 @@ a BERT model for pre-training, and runs the training process.
 
 import os
 
-import torch
-from torch.utils.data import DataLoader, Dataset
-from transformers import (
+# Specify the GPU ID to use
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
+import torch  # noqa: E402
+from torch.utils.data import DataLoader, Dataset  # noqa: E402
+from transformers import (  # noqa: E402
     AdamW,
     BertConfig,
     BertForPreTraining,
