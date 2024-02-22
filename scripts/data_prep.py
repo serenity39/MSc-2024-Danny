@@ -8,8 +8,8 @@ import os
 import pandas as pd
 
 # Define paths
-raw_dir = "msmarco/raw"
-preprocessed_dir = "msmarco/preprocessed"
+raw_dir = "../data/msmarco/raw"
+preprocessed_dir = "../data/msmarco/preprocessed"
 
 # Make sure the preprocessed directory exists
 os.makedirs(preprocessed_dir, exist_ok=True)
