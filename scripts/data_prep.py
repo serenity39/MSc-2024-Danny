@@ -22,7 +22,7 @@ queries_df = pd.read_csv(
     names=["qid", "query"],
 )
 top_passages_df = pd.read_csv(
-    os.path.join(raw_dir, "dev_top100.txt"),
+    os.path.join(raw_dir, "passv2_dev_top100.txt"),
     sep="\t",
     header=None,
     names=["qid", "pid", "passage"],
