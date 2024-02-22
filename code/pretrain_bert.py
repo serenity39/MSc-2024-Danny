@@ -24,7 +24,7 @@ from transformers import (  # noqa: E402
 )
 
 # Configuration
-PRETRAINING_DIR = "../data/collection/msmarco_passage/msmarco_v2_passage"
+PRETRAINING_DIR = "../data/msmarco/preprocessed/"
 OUTPUT_DIR = "../data/results/"
 MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_pretrained.bin")
 MAX_SEQ_LENGTH = 128
@@ -56,7 +56,8 @@ class MSMARCODataset(Dataset):
             with open(
                 os.path.join(directory, filename), "r", encoding="utf-8"
             ) as file:
-                self.texts.append(file.read())
+                for line in file:
+                    self.texts.append(line.strip())
 
     def __len__(self):
         """Returns the size of the dataset."""
