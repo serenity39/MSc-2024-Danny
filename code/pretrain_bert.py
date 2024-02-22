@@ -43,8 +43,7 @@ class MSMARCODataset(Dataset):
     """MSMARCO dataset for pre-training BERT."""
 
     def __init__(self, tokenizer, directory, max_len=512):
-        """Inits MSMARCODataset with tokenizer, directory, and max sequence
-        length."""
+        """Inits with tokenizer, directory, and max sequence length."""
         self.tokenizer = tokenizer
         self.texts = []
         self.max_len = max_len
