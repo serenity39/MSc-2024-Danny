@@ -40,6 +40,12 @@ gzip -d *.gz
 ```
 
 After following these steps, you should have a folder filled with uncompressed .jsonl files, ready for processing.
+You might have to make sure that the decompressed files have the `.jsonl` extension at the end.
+If not, you can do this by using the command in the directory with the files:
+
+```bash
+for file in *; do mv "$file" "$file.jsonl"; done
+```
 
 ## Preprocess the data
 
