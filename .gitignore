@@ -132,3 +132,4 @@ dmypy.json
 data/collections/
 *.tar
 data/runs/run.msmarco-v2-passage.txt
+data/msmarco/

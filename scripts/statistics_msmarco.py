@@ -19,7 +19,7 @@ def load_qrels(filepath):
     with open(filepath, "r", encoding="utf-8") as file:
         for line in file:
             query_id, _, doc_id, relevance = line.strip().split("\t")
-            qrels.append((query_id, doc_id, relevance))
+            qrels.append((query_id, doc_id, int(relevance)))
     return qrels
 
 
@@ -42,7 +42,7 @@ def analyze_qrels(qrels):
     judgements_per_query = {}
     unique_documents = set()
 
-    for query_id, doc_id, relevance in qrels:
+    for query_id, doc_id, _ in qrels:
         judgements_per_query[query_id] = (
             judgements_per_query.get(query_id, 0) + 1
         )
