@@ -34,9 +34,9 @@ PRETRAINING_DIR = "../data/msmarco/preprocessed/"
 OUTPUT_DIR = "../data/results/"
 MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_pretrained.bin")
 MAX_SEQ_LENGTH = 128
-BATCH_SIZE = 8
-NUM_EPOCHS = 3
-LEARNING_RATE = 2e-5
+BATCH_SIZE = 32
+NUM_EPOCHS = 3  # Small for large datasets and large for small datasets
+LEARNING_RATE = 3e-4
 WARMUP_STEPS = 10000
 MAX_STEPS = 100000
 
@@ -111,7 +111,7 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
     """Trains the BERT model.
 
     This function trains the model for one epoch using the provided data.
-    It accumulates the loss and saves the model checkpoints.
+    It returns the average loss over the epoch and saves the model checkpoints.
 
     Args:
         model: The model to be trained.
@@ -123,26 +123,31 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
         save_path: The base path where to save model checkpoints.
 
     Returns:
-        The total loss accumulated over the epoch.
+        float: The average loss over the epoch.
     """
     model.train()
     total_loss = 0
+
+    total_steps_per_epoch = len(data_loader)
+    checkpoint_interval = total_steps_per_epoch // 10
 
     for step, batch in enumerate(data_loader):
         # Move each tensor in the batch to the specified device
         input_ids = batch["input_ids"].to(device_)
         attention_mask = batch["attention_mask"].to(device_)
         token_type_ids = batch["token_type_ids"].to(device_)
+        labels = batch["labels"].to(device_)  # MLM labels
+        next_sentence_label = batch["next_sentence_label"].to(
+            device_
+        )  # NSP labels
 
         # Reconstruct the batch on the device
         batch_on_device = {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "token_type_ids": token_type_ids,
-            "labels": batch["labels"].to(device_),  # MLM labels
-            "next_sentence_label": batch["next_sentence_label"].to(
-                device_
-            ),  # NSP labels
+            "labels": labels,
+            "next_sentence_label": next_sentence_label,
         }
 
         # Forward pass
@@ -162,18 +167,20 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
         # Accumulate the loss
         total_loss += loss.item()
 
-        # Logging after every 1000 steps
-        if step % 1000 == 0:
+        # Logging loss
+        if step % 100 == 0:
             logging.info(f"Step {step} - loss: {loss.item()}")
 
         # Checkpoint saving
-        if step % 1000 == 0:
+        if step % checkpoint_interval == 0 and step > 0:
             checkpoint_path = (
                 f"{save_path}_checkpoint_epoch_{epoch}_step_{step}.bin"
             )
             torch.save(model.state_dict(), checkpoint_path)
             logging.info(f"Checkpoint saved to {checkpoint_path}")
-    return total_loss
+
+    avg_loss = total_loss / total_steps_per_epoch
+    return avg_loss
 
 
 def main():
@@ -198,7 +205,7 @@ def main():
 
     # Run training
     for epoch in range(NUM_EPOCHS):
-        total_loss = train(
+        avg_loss = train(
             model=model,
             data_loader=data_loader,
             optimizer=optimizer,
@@ -207,7 +214,7 @@ def main():
             epoch=epoch,
             save_path=MODEL_SAVE_PATH,
         )
-        logging.info(f"Epoch {epoch} - Total loss: {total_loss}")
+        logging.info(f"Epoch {epoch} - Average loss: {avg_loss}")
 
     # Save the pre-trained model
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
