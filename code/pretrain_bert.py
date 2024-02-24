@@ -139,11 +139,14 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "token_type_ids": token_type_ids,
+            "labels": batch["labels"].to(device_),  # MLM labels
+            "next_sentence_label": batch["next_sentence_label"].to(
+                device_
+            ),  # NSP labels
         }
 
         # Forward pass
         outputs = model(**batch_on_device)
-        logging.info(f"Model outputs: {outputs}")
         loss = outputs.loss
 
         if loss is None:
