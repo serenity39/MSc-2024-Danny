@@ -128,8 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Data collections
+#Large data collections
 data/collections/
 *.tar
 data/runs/run.msmarco-v2-passage.txt
 data/msmarco/
+data/results/
