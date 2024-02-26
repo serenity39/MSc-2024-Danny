@@ -10,7 +10,7 @@ a BERT model for pre-training, and runs the training process.
 
 import logging
 import os
-from random import random
+from random import random, randrange
 
 # Specify the GPU ID to use
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -86,14 +86,22 @@ class MSMARCODataset(Dataset):
         attention_mask = inputs["attention_mask"]
         token_type_ids = inputs["token_type_ids"]
 
-        # Simulate masking 15% of tokens for MLM task
-        mlm_labels = [-100] * len(
-            input_ids
-        )  # Initialize with -100 to ignore unmasked tokens
-        for i in range(len(input_ids)):
-            if random() < 0.15:  # 15% chance to mask a token
-                mlm_labels[i] = input_ids[i]  # The label is the original token
-                input_ids[i] = self.tokenizer.mask_token_id  # Mask the token
+        # Initialize MLM labels with -100 to ignore unmasked tokens
+        mlm_labels = [-100] * len(input_ids)
+
+        for i, token in enumerate(input_ids):
+            prob = random()
+            # Masking 15% of the tokens
+            if prob < 0.15:
+                mlm_labels[i] = token  # Original token is the label
+                rand_mask = random()
+                if rand_mask < 0.8:
+                    # 80% of the time, replace with [MASK]
+                    input_ids[i] = self.tokenizer.mask_token_id
+                elif rand_mask < 0.9:
+                    # 10% of the time, replace with random token
+                    input_ids[i] = randrange(len(self.tokenizer.vocab))
+                # 10% of the time, keep the original token
 
         # For NSP, assuming every passage follows the query, label is 0
         nsp_label = 0
