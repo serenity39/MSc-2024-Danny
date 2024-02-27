@@ -32,7 +32,7 @@ logging.basicConfig(
 # Configuration
 PRETRAINING_DIR = "../data/msmarco/preprocessed/"
 OUTPUT_DIR = "../data/results/"
-MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_pretrained.bin")
+MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_pretrained")
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 32
 NUM_EPOCHS = 3  # Small for large datasets and large for small datasets
@@ -144,10 +144,10 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
         input_ids = batch["input_ids"].to(device_)
         attention_mask = batch["attention_mask"].to(device_)
         token_type_ids = batch["token_type_ids"].to(device_)
-        labels = batch["labels"].to(device_)  # MLM labels
-        next_sentence_label = batch["next_sentence_label"].to(
-            device_
-        )  # NSP labels
+        # MLM labels
+        labels = batch["labels"].to(device_)
+        # NSP labels
+        next_sentence_label = batch["next_sentence_label"].to(device_)
 
         # Reconstruct the batch on the device
         batch_on_device = {
@@ -226,7 +226,7 @@ def main():
 
     # Save the pre-trained model
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
-    logging.info(f"Pre-trained model saved to {MODEL_SAVE_PATH}")
+    logging.info(f"Pre-trained model saved to {MODEL_SAVE_PATH}.bin")
 
 
 if __name__ == "__main__":
