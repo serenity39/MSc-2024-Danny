@@ -201,7 +201,11 @@ def main():
     data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     # Initialize BERT model for pre-training
-    config = BertConfig()
+    config = BertConfig(
+        num_hidden_layers=12,  # Number of transformer layers
+        hidden_size=768,  # Hidden size of the model
+        num_attention_heads=12,  # Number of self-attention heads
+    )
     model = BertForPreTraining(config)
     model.to(device)
 
