@@ -17,7 +17,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import torch  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
 from transformers import (  # noqa: E402
-    BertConfig,
     BertForSequenceClassification,
     BertTokenizer,
     get_linear_schedule_with_warmup,
@@ -172,8 +171,7 @@ def main():
     data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     # Initialize BERT model for fine-tuning
-    config = BertConfig.from_pretrained("bert-base-uncased")
-    model = BertForSequenceClassification(config)
+    model = BertForSequenceClassification.from_pretrained("bert-base-uncased")
     model.to(device)
 
     # Prepare optimizer
