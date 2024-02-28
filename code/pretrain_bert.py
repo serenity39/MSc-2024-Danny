@@ -10,7 +10,6 @@ a BERT model for pre-training, and runs the training process.
 
 import logging
 import os
-from random import random, randrange
 
 # Specify the GPU ID to use
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -19,7 +18,7 @@ import torch  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
 from transformers import (  # noqa: E402
     BertConfig,
-    BertForPreTraining,
+    BertForSequenceClassification,
     BertTokenizer,
     get_linear_schedule_with_warmup,
 )
@@ -36,7 +35,7 @@ MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_pretrained")
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 32
 NUM_EPOCHS = 3  # Small for large datasets and large for small datasets
-LEARNING_RATE = 3e-4
+LEARNING_RATE = 5e-5
 WARMUP_STEPS = 10000
 MAX_STEPS = 100000
 
@@ -48,8 +47,8 @@ if not os.path.exists(OUTPUT_DIR):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class MSMARCODataset(Dataset):
-    """MSMARCO dataset for pre-training BERT."""
+class CustomDataset(Dataset):
+    """Dataset for training BERT."""
 
     def __init__(self, tokenizer, directory, max_len=512):
         """Inits with tokenizer, directory, and max sequence length."""
@@ -86,32 +85,10 @@ class MSMARCODataset(Dataset):
         attention_mask = inputs["attention_mask"]
         token_type_ids = inputs["token_type_ids"]
 
-        # Initialize MLM labels with -100 to ignore unmasked tokens
-        mlm_labels = [-100] * len(input_ids)
-
-        for i, token in enumerate(input_ids):
-            prob = random()
-            # Masking 15% of the tokens
-            if prob < 0.15:
-                mlm_labels[i] = token  # Original token is the label
-                rand_mask = random()
-                if rand_mask < 0.8:
-                    # 80% of the time, replace with [MASK]
-                    input_ids[i] = self.tokenizer.mask_token_id
-                elif rand_mask < 0.9:
-                    # 10% of the time, replace with random token
-                    input_ids[i] = randrange(len(self.tokenizer.vocab))
-                # 10% of the time, keep the original token
-
-        # For NSP, assuming every passage follows the query, label is 0
-        nsp_label = 0
-
         return {
             "input_ids": torch.tensor(input_ids, dtype=torch.long),
             "attention_mask": torch.tensor(attention_mask, dtype=torch.long),
             "token_type_ids": torch.tensor(token_type_ids, dtype=torch.long),
-            "labels": torch.tensor(mlm_labels, dtype=torch.long),
-            "next_sentence_label": torch.tensor([nsp_label], dtype=torch.long),
         }
 
 
@@ -144,18 +121,12 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
         input_ids = batch["input_ids"].to(device_)
         attention_mask = batch["attention_mask"].to(device_)
         token_type_ids = batch["token_type_ids"].to(device_)
-        # MLM labels
-        labels = batch["labels"].to(device_)
-        # NSP labels
-        next_sentence_label = batch["next_sentence_label"].to(device_)
 
         # Reconstruct the batch on the device
         batch_on_device = {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "token_type_ids": token_type_ids,
-            "labels": labels,
-            "next_sentence_label": next_sentence_label,
         }
 
         # Forward pass
@@ -197,16 +168,12 @@ def main():
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
     # Load dataset
-    dataset = MSMARCODataset(tokenizer, PRETRAINING_DIR, MAX_SEQ_LENGTH)
+    dataset = CustomDataset(tokenizer, PRETRAINING_DIR, MAX_SEQ_LENGTH)
     data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
-    # Initialize BERT model for pre-training
-    config = BertConfig(
-        num_hidden_layers=12,  # Number of transformer layers
-        hidden_size=768,  # Hidden size of the model
-        num_attention_heads=12,  # Number of self-attention heads
-    )
-    model = BertForPreTraining(config)
+    # Initialize BERT model for fine-tuning
+    config = BertConfig.from_pretrained("bert-base-uncased")
+    model = BertForSequenceClassification(config)
     model.to(device)
 
     # Prepare optimizer
