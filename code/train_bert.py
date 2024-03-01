@@ -28,12 +28,17 @@ logging.basicConfig(
 )
 
 # Configuration
-PRETRAINING_DIR = "../data/msmarco/preprocessed/"
-OUTPUT_DIR = "../data/results/"
-MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_pretrained")
+
+# Path to the training data
+INPUT_TEXT = "../data/training/inputs_depth_50_50.txt"
+# Path to the training labels
+LABELS = "../data/training/labels_depth_50_50.txt"
+OUTPUT_DIR = "../data/results/depth_50_50/"
+# Change name of model
+MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_depth_50_50")
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 32
-NUM_EPOCHS = 3  # Small for large datasets and large for small datasets
+NUM_EPOCHS = 3
 LEARNING_RATE = 5e-5
 WARMUP_STEPS = 10000
 MAX_STEPS = 100000
@@ -49,45 +54,50 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class CustomDataset(Dataset):
     """Dataset for training BERT."""
 
-    def __init__(self, tokenizer, directory, max_len=512):
-        """Inits with tokenizer, directory, and max sequence length."""
+    def __init__(self, tokenizer, input_file, label_file, max_len=512):
+        """Inits with tokenizer, input_file, label_file, and max sequence
+        length."""
         self.tokenizer = tokenizer
-        self.texts = []
+        self.inputs = []
+        self.labels = []
         self.max_len = max_len
 
-        # Load data
-        for filename in os.listdir(directory):
-            with open(
-                os.path.join(directory, filename), "r", encoding="utf-8"
-            ) as file:
-                for line in file:
-                    self.texts.append(line.strip())
+        # Read the input file
+        with open(input_file, "r", encoding="utf-8") as f:
+            self.inputs = f.readlines()
+
+        # Read the label file
+        with open(label_file, "r", encoding="utf-8") as f:
+            for line in f:
+                self.labels.append(int(line.strip()))
 
     def __len__(self):
         """Returns the size of the dataset."""
-        return len(self.texts)
+        return len(self.inputs)
 
     def __getitem__(self, idx):
         """Returns the tokenized item at the given index."""
-        text = self.texts[idx]
-        inputs = self.tokenizer.encode_plus(
-            text,
-            None,
+        # Separate the query and passage based on the special token
+        query, passage = self.inputs[idx].split("[SEP]")
+        label = self.labels[idx]
+        encoding = self.tokenizer.encode_plus(
+            query,
+            passage,
             add_special_tokens=True,
             max_length=self.max_len,
             padding="max_length",
-            return_token_type_ids=True,
-            return_attention_mask=True,
             truncation=True,
+            return_attention_mask=True,
+            return_token_type_ids=True,
+            return_tensors="pt",
         )
-        input_ids = inputs["input_ids"]
-        attention_mask = inputs["attention_mask"]
-        token_type_ids = inputs["token_type_ids"]
 
+        # Return the tokenized input and the label
         return {
-            "input_ids": torch.tensor(input_ids, dtype=torch.long),
-            "attention_mask": torch.tensor(attention_mask, dtype=torch.long),
-            "token_type_ids": torch.tensor(token_type_ids, dtype=torch.long),
+            "input_ids": encoding["input_ids"].squeeze(0),
+            "attention_mask": encoding["attention_mask"].squeeze(0),
+            "token_type_ids": encoding["token_type_ids"].squeeze(0),
+            "labels": torch.tensor(label, dtype=torch.long),
         }
 
 
@@ -120,12 +130,14 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
         input_ids = batch["input_ids"].to(device_)
         attention_mask = batch["attention_mask"].to(device_)
         token_type_ids = batch["token_type_ids"].to(device_)
+        labels = batch["labels"].to(device_)
 
         # Reconstruct the batch on the device
         batch_on_device = {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "token_type_ids": token_type_ids,
+            "labels": labels,
         }
 
         # Forward pass
@@ -167,7 +179,7 @@ def main():
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
     # Load dataset
-    dataset = CustomDataset(tokenizer, PRETRAINING_DIR, MAX_SEQ_LENGTH)
+    dataset = CustomDataset(tokenizer, INPUT_TEXT, LABELS, MAX_SEQ_LENGTH)
     data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     # Initialize BERT model for fine-tuning
