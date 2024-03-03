@@ -80,13 +80,7 @@ class CustomDataset(Dataset):
         # Separate the query and passage based on the special token
         input_line = self.inputs[idx]
         parts = input_line.split("\t")
-        if len(parts) == 2:
-            query, passage = parts
-        else:
-            # Handle error: log, raise an exception, or use default values
-            print(f"Error: Input line {idx} is not correctly formatted.")
-        print(self.labels)
-        print(self.inputs)
+        query, passage = parts[0], parts[1]
         label = self.labels[idx]
         encoding = self.tokenizer.encode_plus(
             query,
