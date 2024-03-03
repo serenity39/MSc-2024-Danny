@@ -189,7 +189,9 @@ def main():
     data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     # Initialize BERT model for fine-tuning
-    model = BertForSequenceClassification.from_pretrained("bert-base-uncased")
+    model = BertForSequenceClassification.from_pretrained(
+        "bert-base-uncased", num_labels=3
+    )
     model.to(device)
 
     # Prepare optimizer
