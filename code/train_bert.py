@@ -12,7 +12,7 @@ import logging
 import os
 
 # Specify the GPU ID to use
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 import torch  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
@@ -30,9 +30,9 @@ logging.basicConfig(
 # Configuration
 
 # Path to the training data
-INPUT_TEXT = "../data/training/inputs_depth_50_50.txt"
+INPUT_TEXT = "../data/trainingsets/inputs_depth_50_50.txt"
 # Path to the training labels
-LABELS = "../data/training/labels_depth_50_50.txt"
+LABELS = "../data/trainingsets/labels_depth_50_50.txt"
 OUTPUT_DIR = "../data/results/depth_50_50/"
 # Change name of model
 MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_depth_50_50")
