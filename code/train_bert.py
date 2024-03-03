@@ -190,7 +190,7 @@ def main():
 
     # Initialize BERT model for fine-tuning
     model = BertForSequenceClassification.from_pretrained(
-        "bert-base-uncased", num_labels=3
+        "bert-base-uncased", num_labels=4
     )
     model.to(device)
 
