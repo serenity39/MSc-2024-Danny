@@ -58,6 +58,7 @@ def create_training_set(dataset_name, num_queries, num_rels_per_query, seed=42):
 
 
 if __name__ == "__main__":
+    spinner = Halo(text="Creating training sets...", spinner="dots")
     # Create two training sets tuples for depth-based and shallow-based
     depth_based_50_50 = create_training_set(
         "msmarco-passage-v2/trec-dl-2021", 50, 50
@@ -71,6 +72,7 @@ if __name__ == "__main__":
     shallow_based_5000_1 = create_training_set(
         "msmarco-passage-v2/train", 5000, 1
     )
+    spinner.succeed("Training sets created!")
 
     # Print out the lengths of the datasets as a simple check
     print(f"Depth-based 50/50: {len(depth_based_50_50)}")
@@ -119,7 +121,7 @@ if __name__ == "__main__":
     spinner.succeed("Depth-Based 50/100 dataset created!")
 
     # Shallow-based datasets
-    spinner = Halo(text="Creating Depth-Based datasets...", spinner="dots")
+    spinner = Halo(text="Creating Shallow-Based datasets...", spinner="dots")
 
     spinner.start("Creating Shallow-Based 2500/1 dataset...")
     # Create dictionaries to map query and document IDs to text
