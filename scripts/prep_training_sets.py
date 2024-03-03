@@ -1,5 +1,6 @@
 """Generate subsets of the training data for model training."""
 
+import csv
 import random
 from collections import defaultdict
 
@@ -99,17 +100,20 @@ if __name__ == "__main__":
         docid_to_text_depth[doc.doc_id] = doc.text
 
     # Prepare the depth-based datasets for training
-    with open("inputs_depth_50_50.txt", "w") as inputs_file, open(
-        "labels_depth_50_50.txt", "w"
-    ) as labels_file:
+    with open(
+        "../data/trainingsets/inputs_depth_50_50.csv",
+        "w",
+        newline="",
+        encoding="utf-8",
+    ) as inputs_file:
+        csv_writer = csv.writer(inputs_file)
         for query_id, doc_id, relevance in depth_based_50_50:
             query_text = qid_to_text_depth[query_id]
             doc_text = docid_to_text_depth[doc_id]
-            inputs_file.write(f"{query_text}\t{doc_text}\n")
-            labels_file.write(f"{relevance}\n")
+            csv_writer.writerow([query_text, doc_text, relevance])
     spinner.succeed("Depth-Based 50/50 dataset created!")
 
-    spinner.start("Creating Depth-Based 50/100 dataset...")
+    """ spinner.start("Creating Depth-Based 50/100 dataset...")
     with open("inputs_depth_50_100.txt", "w") as inputs_file, open(
         "labels_depth_50_100.txt", "w"
     ) as labels_file:
@@ -155,3 +159,4 @@ if __name__ == "__main__":
             inputs_file.write(f"{query_text}\t{doc_text}\n")
             labels_file.write(f"{relevance}\n")
     spinner.succeed("Shallow-Based 5000/1 dataset created!")
+ """
