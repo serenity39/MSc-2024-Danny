@@ -63,7 +63,8 @@ class CustomDataset(Dataset):
 
         # Read the input file
         with open(input_file, "r", encoding="utf-8") as f:
-            self.inputs = f.readlines()
+            for line in f:
+                self.inputs.append(line.strip())
 
         # Read the label file
         with open(label_file, "r", encoding="utf-8") as f:
