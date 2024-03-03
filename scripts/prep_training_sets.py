@@ -4,6 +4,7 @@ import random
 from collections import defaultdict
 
 import ir_datasets
+from halo import Halo
 
 
 def create_training_set(dataset_name, num_queries, num_rels_per_query, seed=42):
@@ -61,27 +62,31 @@ if __name__ == "__main__":
     depth_based_50_50 = create_training_set(
         "msmarco-passage-v2/trec-dl-2021", 50, 50
     )
-    depth_based_50_100 = create_training_set(
-        "msmarco-passage-v2/trec-dl-2021", 50, 100
-    )
-    shallow_based_2500_1 = create_training_set(
-        "msmarco-passage-v2/train", 2500, 1
-    )
-    shallow_based_5000_1 = create_training_set(
-        "msmarco-passage-v2/train", 5000, 1
-    )
+    # depth_based_50_100 = create_training_set(
+    #    "msmarco-passage-v2/trec-dl-2021", 50, 100
+    # )
+    # shallow_based_2500_1 = create_training_set(
+    #    "msmarco-passage-v2/train", 2500, 1
+    # )
+    # shallow_based_5000_1 = create_training_set(
+    #    "msmarco-passage-v2/train", 5000, 1
+    # )
 
     # Print out the lengths of the datasets as a simple check
     print(f"Depth-based 50/50: {len(depth_based_50_50)}")
-    print(f"Depth-based 50/100: {len(depth_based_50_100)}")
-    print(f"Shallow-based 2500/1: {len(shallow_based_2500_1)}")
-    print(f"Shallow-based 5000/1: {len(shallow_based_5000_1)}")
+    # print(f"Depth-based 50/100: {len(depth_based_50_100)}")
+    # print(f"Shallow-based 2500/1: {len(shallow_based_2500_1)}")
+    # print(f"Shallow-based 5000/1: {len(shallow_based_5000_1)}")
+
+    print(depth_based_50_50)
 
     # Load the MS MARCO dataset
     dataset_train = ir_datasets.load("msmarco-passage-v2/train")
     dataset_trec_2021 = ir_datasets.load("msmarco-passage-v2/trec-dl-2021")
 
     # Depth-based datasets
+    spinner = Halo(text="Creating Depth-Based dataset...", spinner="dots")
+    spinner.start()
     # Create dictionaries to map query and document IDs to text
     qid_to_text_depth = {}
     docid_to_text_depth = {}
@@ -102,7 +107,9 @@ if __name__ == "__main__":
             inputs_file.write(f"{query_text}[SEP]{doc_text}\n")
             labels_file.write(f"{relevance}\n")
 
-    with open("inputs_depth_50_100.txt", "w") as inputs_file, open(
+    spinner.succeed("Depth-Based dataset created!")
+
+    """ with open("inputs_depth_50_100.txt", "w") as inputs_file, open(
         "labels_depth_50_100.txt", "w"
     ) as labels_file:
         for query_id, doc_id, relevance in depth_based_50_100:
@@ -139,4 +146,4 @@ if __name__ == "__main__":
             query_text = qid_to_text_shallow[query_id]
             doc_text = docid_to_text_shallow[doc_id]
             inputs_file.write(f"{query_text}[SEP]{doc_text}\n")
-            labels_file.write(f"{relevance}\n")
+            labels_file.write(f"{relevance}\n") """

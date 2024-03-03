@@ -55,8 +55,7 @@ class CustomDataset(Dataset):
     """Dataset for training BERT."""
 
     def __init__(self, tokenizer, input_file, label_file, max_len=512):
-        """Inits with tokenizer, input_file, label_file, and max sequence
-        length."""
+        """Inits the dataset class."""
         self.tokenizer = tokenizer
         self.inputs = []
         self.labels = []
