@@ -77,7 +77,14 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         """Returns the tokenized item at the given index."""
         # Separate the query and passage based on the special token
-        query, passage = self.inputs[idx].split("[SEP]")
+        input_line = self.inputs[idx]
+        parts = input_line.split("\t")
+        if len(parts) == 2:
+            query, passage = parts
+        else:
+            # Handle error: log, raise an exception, or use default values
+            print(f"Error: Input line {idx} is not correctly formatted.")
+
         label = self.labels[idx]
         encoding = self.tokenizer.encode_plus(
             query,
