@@ -84,7 +84,8 @@ class CustomDataset(Dataset):
         else:
             # Handle error: log, raise an exception, or use default values
             print(f"Error: Input line {idx} is not correctly formatted.")
-
+        print(self.labels)
+        print(self.inputs)
         label = self.labels[idx]
         encoding = self.tokenizer.encode_plus(
             query,
