@@ -80,6 +80,8 @@ class CustomDataset(Dataset):
         # Separate the query and passage based on the special token
         input_line = self.inputs[idx]
         parts = input_line.split("\t")
+        print(parts)
+        print(len(parts))
         query, passage = parts[0], parts[1]
         label = self.labels[idx]
         encoding = self.tokenizer.encode_plus(
