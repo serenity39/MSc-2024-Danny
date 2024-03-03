@@ -105,7 +105,7 @@ if __name__ == "__main__":
         for query_id, doc_id, relevance in depth_based_50_50:
             query_text = qid_to_text_depth[query_id]
             doc_text = docid_to_text_depth[doc_id]
-            inputs_file.write(f"{query_text}[SEP]{doc_text}\n")
+            inputs_file.write(f"{query_text}\t{doc_text}\n")
             labels_file.write(f"{relevance}\n")
     spinner.succeed("Depth-Based 50/50 dataset created!")
 
@@ -116,7 +116,7 @@ if __name__ == "__main__":
         for query_id, doc_id, relevance in depth_based_50_100:
             query_text = qid_to_text_depth[query_id]
             doc_text = docid_to_text_depth[doc_id]
-            inputs_file.write(f"{query_text}[SEP]{doc_text}\n")
+            inputs_file.write(f"{query_text}\t{doc_text}\n")
             labels_file.write(f"{relevance}\n")
     spinner.succeed("Depth-Based 50/100 dataset created!")
 
@@ -141,7 +141,7 @@ if __name__ == "__main__":
         for query_id, doc_id, relevance in shallow_based_2500_1:
             query_text = qid_to_text_shallow[query_id]
             doc_text = docid_to_text_shallow[doc_id]
-            inputs_file.write(f"{query_text}[SEP]{doc_text}\n")
+            inputs_file.write(f"{query_text}\t{doc_text}\n")
             labels_file.write(f"{relevance}\n")
     spinner.succeed("Shallow-Based 2500/1 dataset created!")
 
@@ -152,6 +152,6 @@ if __name__ == "__main__":
         for query_id, doc_id, relevance in shallow_based_5000_1:
             query_text = qid_to_text_shallow[query_id]
             doc_text = docid_to_text_shallow[doc_id]
-            inputs_file.write(f"{query_text}[SEP]{doc_text}\n")
+            inputs_file.write(f"{query_text}\t{doc_text}\n")
             labels_file.write(f"{relevance}\n")
     spinner.succeed("Shallow-Based 5000/1 dataset created!")
