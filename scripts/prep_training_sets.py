@@ -78,8 +78,6 @@ if __name__ == "__main__":
     # print(f"Shallow-based 2500/1: {len(shallow_based_2500_1)}")
     # print(f"Shallow-based 5000/1: {len(shallow_based_5000_1)}")
 
-    print(depth_based_50_50)
-
     # Load the MS MARCO dataset
     dataset_train = ir_datasets.load("msmarco-passage-v2/train")
     dataset_trec_2021 = ir_datasets.load("msmarco-passage-v2/trec-dl-2021")
