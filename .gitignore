@@ -134,3 +134,4 @@ data/collections/
 data/runs/run.msmarco-v2-passage.txt
 data/msmarco/
 data/results/
+data/trainingsets/
