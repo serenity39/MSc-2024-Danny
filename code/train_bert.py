@@ -8,6 +8,7 @@ a BERT model for pre-training, and runs the training process.
   python pretrain_bert.py
 """
 
+import csv
 import logging
 import os
 
@@ -30,9 +31,7 @@ logging.basicConfig(
 # Configuration
 
 # Path to the training data
-INPUT_TEXT = "../data/trainingsets/inputs_depth_50_50.txt"
-# Path to the training labels
-LABELS = "../data/trainingsets/labels_depth_50_50.txt"
+INPUT_TEXT = "../data/trainingsets/inputs_depth_50_50.csv"
 OUTPUT_DIR = "../data/results/depth_50_50/"
 # Change name of model
 MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_depth_50_50")
@@ -54,22 +53,17 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class CustomDataset(Dataset):
     """Dataset for training BERT."""
 
-    def __init__(self, tokenizer, input_file, label_file, max_len=512):
+    def __init__(self, tokenizer, input_file, max_len=512):
         """Inits the dataset class."""
         self.tokenizer = tokenizer
-        self.inputs = []
-        self.labels = []
+        self.data = []
         self.max_len = max_len
 
-        # Read the input file
-        with open(input_file, "r", encoding="utf-8") as f:
-            for line in f:
-                self.inputs.append(line.strip())
-
-        # Read the label file
-        with open(label_file, "r", encoding="utf-8") as f:
-            for line in f:
-                self.labels.append(int(line.strip()))
+        # Read the CSV data file
+        with open(input_file, "r", encoding="utf-8") as file:
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                self.data.append((row[0], row[1], int(row[2])))
 
     def __len__(self):
         """Returns the size of the dataset."""
@@ -78,12 +72,7 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         """Returns the tokenized item at the given index."""
         # Separate the query and passage based on the special token
-        input_line = self.inputs[idx]
-        parts = input_line.split("\t")
-        print(parts)
-        print(len(parts))
-        query, passage = parts[0], parts[1]
-        label = self.labels[idx]
+        query, passage, label = self.data[idx]
         encoding = self.tokenizer.encode_plus(
             query,
             passage,
@@ -183,7 +172,7 @@ def main():
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
     # Load dataset
-    dataset = CustomDataset(tokenizer, INPUT_TEXT, LABELS, MAX_SEQ_LENGTH)
+    dataset = CustomDataset(tokenizer, INPUT_TEXT, MAX_SEQ_LENGTH)
     data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     # Initialize BERT model for fine-tuning

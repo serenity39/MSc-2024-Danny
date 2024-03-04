@@ -60,6 +60,7 @@ def create_training_set(dataset_name, num_queries, num_rels_per_query, seed=42):
 
 if __name__ == "__main__":
     spinner = Halo(text="Creating training sets...", spinner="dots")
+    spinner.start()
     # Create two training sets tuples for depth-based and shallow-based
     depth_based_50_50 = create_training_set(
         "msmarco-passage-v2/trec-dl-2021", 50, 50
@@ -88,7 +89,7 @@ if __name__ == "__main__":
     # Depth-based datasets
     spinner = Halo(text="Creating Depth-Based datasets...", spinner="dots")
 
-    spinner.start("Creating Depth-Based 50/100 dataset...")
+    spinner.start("Creating Depth-Based 50/50 dataset...")
     # Create dictionaries to map query and document IDs to text
     qid_to_text_depth = {}
     docid_to_text_depth = {}
