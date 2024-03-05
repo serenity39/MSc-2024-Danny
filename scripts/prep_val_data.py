@@ -7,18 +7,20 @@ import ir_datasets
 
 
 def create_validation_set(dataset, output_csv_path):
-    """Create tuples with information for creating validation sets.
+    """Create a validation dataset for evaluating model.
 
-    Create a list of tuples with query and document text and relevance for
-    creating a validation set. The tuples are written to a CSV file.
-    The format of the CSV file is: query_text, doc_text, relevance.
+    Format the validation dataset as a CSV file with the following columns:
+    - Query text
+    - Document text
+    - Relevance score
+
 
     Args:
         dataset (Dataset): Dataset object loaded from ir_datasets.
         output_csv_path (str): Path to save the validation CSV.
 
     Returns:
-        list of tuples: A list of (query_id, doc_id, relevance) tuples.
+        file: A file containing the validation dataset in CSV format.
     """
     # Create dictionaries to map query and document IDs to text
     qid_to_text = {}
