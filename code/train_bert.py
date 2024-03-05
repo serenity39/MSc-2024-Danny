@@ -231,7 +231,7 @@ def main():
     # Load dataset
     dataset = CustomDataset(tokenizer, INPUT_TEXT, MAX_SEQ_LENGTH)
     data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
-    val_dataset = CustomDataset(tokenizer, VAL_DATA, INPUT_TEXT, MAX_SEQ_LENGTH)
+    val_dataset = CustomDataset(tokenizer, VAL_DATA, MAX_SEQ_LENGTH)
     val_data_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE)
 
     # Initialize BERT model for fine-tuning
