@@ -67,7 +67,7 @@ class CustomDataset(Dataset):
 
     def __len__(self):
         """Returns the size of the dataset."""
-        return len(self.inputs)
+        return len(self.data)
 
     def __getitem__(self, idx):
         """Returns the tokenized item at the given index."""
