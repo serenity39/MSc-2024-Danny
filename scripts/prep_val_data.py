@@ -4,6 +4,7 @@ import csv
 import os
 
 import ir_datasets
+from halo import Halo
 
 
 def create_validation_set(dataset, output_csv_path):
@@ -56,5 +57,7 @@ if __name__ == "__main__":
     validation_csv_path = "../data/validationdata/validation_data.csv"
     os.makedirs(validation_csv_path, exist_ok=True)
 
+    spinner = Halo(text="Creating validation set...", spinner="dots")
     # Create the validation set and save to CSV
     create_validation_set(dataset_validation, validation_csv_path)
+    spinner.succeed("Validation set created!")
