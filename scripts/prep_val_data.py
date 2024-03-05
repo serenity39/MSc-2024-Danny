@@ -70,7 +70,5 @@ if __name__ == "__main__":
     validation_csv_path = "../data/validationdata/validation_data.csv"
     os.makedirs(validation_csv_path, exist_ok=True)
 
-    spinner.start("Creating validation set...")
     # Create the validation set and save to CSV
     create_validation_set(dataset_validation, validation_csv_path)
-    spinner.succeed("Validation set created!")
