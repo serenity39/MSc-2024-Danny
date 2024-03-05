@@ -183,5 +183,3 @@ if __name__ == "__main__":
             doc_text = docid_to_text_shallow[doc_id]
             csv_writer.writerow([query_text, doc_text, relevance])
     spinner.succeed("Shallow-Based 5000/1 dataset created!")
-
-    spinner.stop("All datasets created!")
