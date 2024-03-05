@@ -15,24 +15,33 @@ import os
 # Specify the GPU ID to use
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
+import numpy as np  # noqa: E402
 import torch  # noqa: E402
+from sklearn.metrics import (  # noqa: E402
+    label_ranking_average_precision_score,
+    ndcg_score,
+)
+from sklearn.preprocessing import LabelBinarizer  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
 from transformers import (  # noqa: E402
     BertForSequenceClassification,
     BertTokenizer,
     get_linear_schedule_with_warmup,
 )
+from transformers import logging as tf_logging  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+tf_logging.set_verbosity_error()
 
 # Configuration
 
-# Path to the training data
+# Path to the data
 INPUT_TEXT = "../data/trainingsets/inputs_depth_50_50.csv"
 OUTPUT_DIR = "../data/results/depth_50_50/"
+VAL_DATA = "../data/validationdata/validation_data.csv"
 # Change name of model
 MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_depth_50_50")
 MAX_SEQ_LENGTH = 128
@@ -166,6 +175,54 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
     return avg_loss
 
 
+def evaluate_model(model, val_data_loader, device_):
+    """Evaluates the BERT model on the validation data.
+
+    This function evaluates the model on the validation data and returns the
+    MAP and NDCG metrics.
+
+    Args:
+        model: The model to be evaluated.
+        val_data_loader: The data loader for the validation data.
+        device_: The device on which to evaluate (e.g., 'cuda', 'cpu').
+
+    Returns:
+        float: The mean average precision (MAP) score.
+        float: The normalized discounted cumulative gain (NDCG) score.
+    """
+    model.eval()  # set the model to evaluation mode
+    y_true = []
+    y_scores = []
+
+    # Use a label binarizer to handle multigrade relevance
+    lb = LabelBinarizer()
+    lb.fit(range(4))
+
+    with torch.no_grad():
+        for batch in val_data_loader:
+            input_ids = batch["input_ids"].to(device_)
+            attention_mask = batch["attention_mask"].to(device_)
+            labels = batch["labels"].to(device_)
+            outputs = model(input_ids, attention_mask=attention_mask)
+            logits = outputs.logits
+
+            y_true.append(labels.cpu().numpy())
+            y_scores.append(torch.softmax(logits, dim=1).cpu().numpy())
+
+    # Flatten the outputs
+    y_true = np.concatenate(y_true, axis=0)
+    y_scores = np.concatenate(y_scores, axis=0)
+
+    # Calculate MAP and NDCG
+    map_score = label_ranking_average_precision_score(y_true, y_scores)
+    # For ndcg_score, the input should be 2D
+    y_true_2d = y_true.reshape(-1, 1)
+    y_scores_2d = y_scores[:, 1].reshape(-1, 1)
+    ndcg_value = ndcg_score(y_true_2d, y_scores_2d)
+
+    return map_score, ndcg_value
+
+
 def main():
     """Main function to run the pre-training."""
     # Load tokenizer
@@ -174,10 +231,12 @@ def main():
     # Load dataset
     dataset = CustomDataset(tokenizer, INPUT_TEXT, MAX_SEQ_LENGTH)
     data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
+    val_dataset = CustomDataset(tokenizer, VAL_DATA, INPUT_TEXT, MAX_SEQ_LENGTH)
+    val_data_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE)
 
     # Initialize BERT model for fine-tuning
     model = BertForSequenceClassification.from_pretrained(
-        "bert-base-uncased", num_labels=4
+        "bert-base-uncased", num_labels=2
     )
     model.to(device)
 
@@ -199,6 +258,11 @@ def main():
             save_path=MODEL_SAVE_PATH,
         )
         logging.info(f"Epoch {epoch} - Average loss: {avg_loss}")
+
+    map_score, ndcg_value = evaluate_model(model, val_data_loader, device)
+    logging.info(
+        f"Validation - Epoch: {epoch}, MAP: {map_score}, NDCG: {ndcg_value}"
+    )
 
     # Save the pre-trained model
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
