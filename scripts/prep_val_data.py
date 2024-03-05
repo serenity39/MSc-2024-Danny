@@ -1,7 +1,6 @@
 """Prepare the validation data for evaluating the BERT model."""
 
 import csv
-import os
 
 import ir_datasets
 from halo import Halo
@@ -68,7 +67,6 @@ if __name__ == "__main__":
 
     # Define path to save the validation data
     validation_csv_path = "../data/validationdata/validation_data.csv"
-    os.makedirs(validation_csv_path, exist_ok=True)
 
     # Create the validation set and save to CSV
     create_validation_set(dataset_validation, validation_csv_path)
