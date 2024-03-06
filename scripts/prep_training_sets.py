@@ -105,8 +105,11 @@ def create_training_set(
         for qrel in selected_qrels:
             # Convert relevance judgments to binary
             if qrel.relevance > 1:
-                qrel.relevance = 1
-            training_set.append((qrel.query_id, qrel.doc_id, qrel.relevance))
+                training_set.append((qrel.query_id, qrel.doc_id, 1))
+            else:
+                training_set.append(
+                    (qrel.query_id, qrel.doc_id, qrel.relevance)
+                )
 
     # Create non-relevant examples by swapping passages between queries
     if create_non_relevant:
