@@ -45,7 +45,7 @@ def create_training_set(
         # Only select queries with enough relevance judgments
         if (
             len(qrels_by_query_id[query]) >= num_rels_per_query
-            and qrels_by_query_id[query].relevance <= 1
+            and qrels_by_query_id[query][0].relevance < 2
         ):
             selected_queries.append(query)
 
