@@ -43,7 +43,10 @@ def create_training_set(
     while len(selected_queries) < num_queries:
         query = random.choice(list(qrels_by_query_id.keys()))
         # Only select queries with enough relevance judgments
-        if len(qrels_by_query_id[query]) >= num_rels_per_query:
+        if (
+            len(qrels_by_query_id[query]) >= num_rels_per_query
+            and qrels_by_query_id[query].relevalance <= 1
+        ):
             selected_queries.append(query)
 
     # Create the training set based on the selected queries

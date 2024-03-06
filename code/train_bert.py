@@ -21,7 +21,6 @@ from sklearn.metrics import (  # noqa: E402
     label_ranking_average_precision_score,
     ndcg_score,
 )
-from sklearn.preprocessing import LabelBinarizer  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
 from transformers import (  # noqa: E402
     BertForSequenceClassification,
@@ -194,10 +193,6 @@ def evaluate_model(model, val_data_loader, device_):
     y_true = []
     y_scores = []
 
-    # Use a label binarizer to handle multigrade relevance
-    lb = LabelBinarizer()
-    lb.fit(range(4))
-
     with torch.no_grad():
         for batch in val_data_loader:
             input_ids = batch["input_ids"].to(device_)
@@ -206,7 +201,12 @@ def evaluate_model(model, val_data_loader, device_):
             outputs = model(input_ids, attention_mask=attention_mask)
             logits = outputs.logits
 
-            y_true.append(labels.cpu().numpy())
+            # Apply the threshold to convert relevance judgments
+            # Convert 1, 2, 3 to 1, and 0 to 0
+            # (used to match the binary relevance format)
+            relevance = (labels > 0).long()
+
+            y_true.append(relevance.cpu().numpy())
             y_scores.append(torch.softmax(logits, dim=1).cpu().numpy())
 
     # Flatten the outputs
