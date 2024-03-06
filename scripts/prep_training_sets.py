@@ -8,6 +8,60 @@ import ir_datasets
 from halo import Halo
 
 
+def select_queries(qrels_by_query_id, num_queries, num_rels_per_query):
+    """Select queries with a minimum number of relevance judgments.
+
+    Args:
+        qrels_by_query_id (dict): dictionary containing relevance judgments
+        by query id.
+        num_queries (int): number of queries to select.
+        num_rels_per_query (int): number of relevance judgments.
+
+    Returns:
+        list: list of selected queries.
+    """
+    selected_queries = []
+    while len(selected_queries) < num_queries:
+        query = random.choice(list(qrels_by_query_id.keys()))
+        # Only select queries with enough relevance judgments
+        if len(qrels_by_query_id[query]) >= num_rels_per_query:
+            selected_queries.append(query)
+    return selected_queries
+
+
+def create_non_relevant_examples(
+    training_set, selected_queries, qrels_by_query_id
+):
+    """Create non-relevant examples by swapping passages between queries.
+
+    Args:
+        training_set (list): training set to create non-relevant examples from.
+        selected_queries (list): list of selected queries.
+        qrels_by_query_id (dict): dictionary with relevance judgments by
+        query id.
+
+    Returns:
+        list: training set with non-relevant examples.
+    """
+    for i in range(len(training_set)):
+        # Randomly select a different query
+        different_query_id = random.choice(selected_queries)
+        while different_query_id == training_set[i][0]:
+            different_query_id = random.choice(selected_queries)
+
+        # Get the list of documents that are relevant to the different query
+        relevant_docs = []
+        for qrel in qrels_by_query_id[different_query_id]:
+            relevant_docs.append(qrel.doc_id)
+
+        # Randomly select a relevant document from the different query
+        swapped_doc_id = random.choice(relevant_docs)
+
+        # Replace the document in the training set with the swapped document
+        training_set[i] = (training_set[i][0], swapped_doc_id, 0)
+    return training_set
+
+
 def create_training_set(
     dataset, num_queries, num_rels_per_query, seed=42, create_non_relevant=False
 ):
@@ -39,15 +93,9 @@ def create_training_set(
         qrels_by_query_id[qrel.query_id].append(qrel)
 
     # Randomly select queries
-    selected_queries = []
-    while len(selected_queries) < num_queries:
-        query = random.choice(list(qrels_by_query_id.keys()))
-        # Only select queries with enough relevance judgments
-        if (
-            len(qrels_by_query_id[query]) >= num_rels_per_query
-            and qrels_by_query_id[query][0].relevance < 2
-        ):
-            selected_queries.append(query)
+    selected_queries = select_queries(
+        qrels_by_query_id, num_queries, num_rels_per_query
+    )
 
     # Create the training set based on the selected queries
     for query_id in selected_queries:
@@ -55,26 +103,16 @@ def create_training_set(
             qrels_by_query_id[query_id], num_rels_per_query
         )
         for qrel in selected_qrels:
+            # Convert relevance judgments to binary
+            if qrel.relevance > 1:
+                qrel.relevance = 1
             training_set.append((qrel.query_id, qrel.doc_id, qrel.relevance))
 
     # Create non-relevant examples by swapping passages between queries
     if create_non_relevant:
-        for i in range(len(training_set)):
-            # Randomly select a different query
-            different_query_id = random.choice(selected_queries)
-            while different_query_id == training_set[i][0]:
-                different_query_id = random.choice(selected_queries)
-
-            # Get the list of documents that are relevant to the different query
-            relevant_docs = []
-            for qrel in qrels_by_query_id[different_query_id]:
-                relevant_docs.append(qrel.doc_id)
-
-            # Randomly select a relevant document from the different query
-            swapped_doc_id = random.choice(relevant_docs)
-
-            # Replace the document in the training set with the swapped document
-            training_set[i] = (training_set[i][0], swapped_doc_id, 0)
+        training_set = create_non_relevant_examples(
+            training_set, selected_queries, qrels_by_query_id
+        )
 
     return training_set
 
@@ -130,7 +168,9 @@ if __name__ == "__main__":
             query_text = qid_to_text_depth[query_id]
             doc_text = docid_to_text_depth[doc_id]
             csv_writer.writerow([query_text, doc_text, relevance])
-    spinner.succeed("Depth-Based 50/50 dataset created!")
+    spinner.succeed(
+        f"Depth-Based 50/50 dataset created! Size:{len(depth_based_50_50)}"
+    )
 
     spinner.start("Creating Depth-Based 50/100 dataset...")
     with open(
@@ -144,7 +184,9 @@ if __name__ == "__main__":
             query_text = qid_to_text_depth[query_id]
             doc_text = docid_to_text_depth[doc_id]
             csv_writer.writerow([query_text, doc_text, relevance])
-    spinner.succeed("Depth-Based 50/100 dataset created!")
+    spinner.succeed(
+        f"Depth-Based 50/100 dataset created! Size:{len(depth_based_50_100)}"
+    )
 
     # Shallow-based datasets
     spinner = Halo(text="Creating Shallow-Based datasets...", spinner="dots")
@@ -171,7 +213,10 @@ if __name__ == "__main__":
             query_text = qid_to_text_shallow[query_id]
             doc_text = docid_to_text_shallow[doc_id]
             csv_writer.writerow([query_text, doc_text, relevance])
-    spinner.succeed("Shallow-Based 2500/1 dataset created!")
+    spinner.succeed(
+        f"Shallow-Based 2500/1 dataset created! "
+        f"Size:{len(shallow_based_2500_1)}"
+    )
 
     spinner.start("Creating Shallow-Based 5000/1 dataset...")
     with open(
@@ -185,4 +230,7 @@ if __name__ == "__main__":
             query_text = qid_to_text_shallow[query_id]
             doc_text = docid_to_text_shallow[doc_id]
             csv_writer.writerow([query_text, doc_text, relevance])
-    spinner.succeed("Shallow-Based 5000/1 dataset created!")
+    spinner.succeed(
+        f"Shallow-Based 5000/1 dataset created! "
+        f"Size:{len(shallow_based_5000_1)}"
+    )
