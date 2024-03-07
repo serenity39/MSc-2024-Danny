@@ -42,7 +42,7 @@ INPUT_TEXT = "../data/trainingsets/inputs_depth_50_50.csv"
 OUTPUT_DIR = "../data/results/depth_50_50/"
 VAL_DATA = "../data/validationdata/validation_data.csv"
 # Change name of model
-MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_depth_50_50")
+MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_depth_50_50.pt")
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 32
 NUM_EPOCHS = 3
@@ -165,9 +165,17 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
         # Checkpoint saving
         if step % checkpoint_interval == 0 and step > 0:
             checkpoint_path = (
-                f"{save_path}_checkpoint_epoch_{epoch}_step_{step}.bin"
+                f"{save_path}_checkpoint_epoch_{epoch}_step_{step}.pt"
             )
-            torch.save(model.state_dict(), checkpoint_path)
+            checkpoint = {
+                "epoch": epoch,
+                "step": step,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "loss": loss,
+                "scheduler_state_dict": scheduler.state_dict(),
+            }
+            torch.save(checkpoint, checkpoint_path)
             logging.info(f"Checkpoint saved to {checkpoint_path}")
 
     avg_loss = total_loss / total_steps_per_epoch
@@ -266,7 +274,7 @@ def main():
 
     # Save the pre-trained model
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
-    logging.info(f"Pre-trained model saved to {MODEL_SAVE_PATH}.bin")
+    logging.info(f"Pre-trained model saved to {MODEL_SAVE_PATH}")
 
 
 if __name__ == "__main__":
