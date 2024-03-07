@@ -42,7 +42,10 @@ def create_validation_set(dataset, output_csv_path):
     # Prepare the validation set tuples
     validation_set = []
     for qrel in dataset.qrels_iter():
-        validation_set.append((qrel.query_id, qrel.doc_id, qrel.relevance))
+        if qrel.relevance > 0:
+            validation_set.append((qrel.query_id, qrel.doc_id, 1))
+        else:
+            validation_set.append((qrel.query_id, qrel.doc_id, qrel.relevance))
     spinner.succeed("Validation set tuples prepared!")
 
     spinner.start("Write validation set to a CSV file...")
