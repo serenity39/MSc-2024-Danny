@@ -200,15 +200,19 @@ def evaluate_model(model, validation_dataloader, device_):
     with torch.no_grad():
         for batch in validation_dataloader:
             # Process your batch to prepare inputs and labels
-            inputs = {
-                "input_ids": batch["input_ids"].to(device_),
-                "attention_mask": batch["attention_mask"].to(device_),
-                "token_type_ids": batch["token_type_ids"].to(device_),
-            }
+            input_ids = batch["input_ids"].to(device_)
+            attention_mask = batch["attention_mask"].to(device_)
+            token_type_ids = batch["token_type_ids"].to(device_)
             labels = batch["labels"].to(device_)
 
+            batch_on_device = {
+                "input_ids": input_ids,
+                "attention_mask": attention_mask,
+                "token_type_ids": token_type_ids,
+            }
+
             # Obtain model predictions
-            outputs = model(inputs)
+            outputs = model(**batch_on_device)
 
             # Convert outputs to probabilities if necessary
             probabilities = torch.sigmoid(outputs).cpu().numpy()
