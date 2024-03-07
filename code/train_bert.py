@@ -200,7 +200,13 @@ def evaluate_model(model, validation_dataloader, device_):
     with torch.no_grad():
         for batch in validation_dataloader:
             # Process your batch to prepare inputs and labels
-            inputs, labels = batch
+            inputs = {
+                "input_ids": batch["input_ids"].to(device_),
+                "attention_mask": batch["attention_mask"].to(device_),
+                "token_type_ids": batch["token_type_ids"].to(device_),
+            }
+            labels = batch["labels"].to(device_)
+
             inputs = inputs.to(device_)
             labels = labels.to(device_)
 
