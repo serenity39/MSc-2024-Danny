@@ -1,10 +1,9 @@
 """Preprocessing script making training sets for BERT."""
 
-import json
 import random
-from collections import defaultdict
 
 import ir_datasets
+import pandas as pd
 from datasets import Dataset
 from halo import Halo
 
@@ -24,9 +23,9 @@ def convert_to_binary(trec_qrels):
     for qrel in trec_qrels:
         binary_qrels.append(
             {
-                "query_id": qrel.query_id,
-                "doc_id": qrel.doc_id,
-                "relevance": 1 if qrel.relevance > 0 else 0,
+                "query_id": qrel["query_id"],
+                "doc_id": qrel["doc_id"],
+                "relevance": 1 if qrel["relevance"] > 0 else 0,
             }
         )
     return binary_qrels
@@ -45,167 +44,190 @@ def negative_sampling(train_qrels, docs, num_neg_samples=1):
     Returns:
         list: A list of negative samples.
     """
-    sampled_negatives = []
+    sampled_qrels = []
+    all_doc_ids = set(docs.keys())
+
     for qrel in train_qrels:
-        sampled_docs = random.sample(docs, num_neg_samples)
-        for doc_id in sampled_docs:
-            sampled_negatives.append(
+        relevant_doc_id = qrel["doc_id"]
+        non_relevant_docs = list(all_doc_ids - set([relevant_doc_id]))
+        negative_samples = random.sample(non_relevant_docs, num_neg_samples)
+        sampled_qrels.append(qrel)
+        for doc_id in negative_samples:
+            sampled_qrels.append(
                 {"query_id": qrel["query_id"], "doc_id": doc_id, "relevance": 0}
             )
-    return sampled_negatives
+    return sampled_qrels
 
 
 # Stratify the qrels to create the training sets
-def stratify_qrels(  # noqa: C901
-    qrels, num_queries, pos_per_query, neg_per_query=0
+def create_stratified_sample(
+    qrels, queries, docs, num_queries, num_rels_per_query, ratio
 ):
-    """Stratify sampling the qrels to create the training sets.
+    """Create a stratified sample from the qrels.
 
     Args:
         qrels: The relevance judgments.
-        num_queries: The number of queries to sample.
-        pos_per_query: The number of positive examples to sample per query.
-        neg_per_query (optional): The number of negative examples to sample
-        per query. Defaults to 0.
+        queries: The queries.
+        docs: The documents/passage.
+        num_queries: Number of queries to sample.
+        num_rels_per_query: Number of relevance judgments to sample per query.
+        ratio: The ratio of relevant to non-relevant documents.
 
     Returns:
-        list: A list of stratified samples.
+        list: A list of dictionaries containing the query text, document text,
+              and relevance judgment.
     """
-    queries = defaultdict(list)
-    for qrel in qrels:
-        queries[qrel["query_id"]].append(qrel)
-
-    eligible_queries = []
-    for query_id, docs in queries.items():
-        pos_count = 0
-        neg_count = 0
-        for doc in docs:
-            if doc["relevance"] == 1:
-                pos_count += 1
-            elif doc["relevance"] == 0:
-                neg_count += 1
-        if pos_count >= pos_per_query and neg_count >= neg_per_query:
-            eligible_queries.append(query_id)
-
-    selected_queries = random.sample(eligible_queries, num_queries)
-    stratified_samples = []
+    # Create stratified subsets based on the ratio
+    stratified_qrels = []
+    selected_queries = random.sample(list(queries.keys()), num_queries)
     for query_id in selected_queries:
-        pos_samples = []
-        neg_samples = []
-        for q in queries[query_id]:
-            if q["relevance"] == 1:
-                pos_samples.append(q)
-            elif q["relevance"] == 0:
-                neg_samples.append(q)
-        pos_selected = random.sample(pos_samples, pos_per_query)
-        neg_selected = random.sample(neg_samples, neg_per_query)
-        stratified_samples.extend(pos_selected)
-        stratified_samples.extend(neg_selected)
-
+        query_qrels = [qrel for qrel in qrels if qrel["query_id"] == query_id]
+        relevant_qrels = [
+            qrel for qrel in query_qrels if qrel["relevance"] == 1
+        ]
+        non_relevant_qrels = [
+            qrel for qrel in query_qrels if qrel["relevance"] == 0
+        ]
+        num_rel = int(num_rels_per_query * ratio)
+        num_non_rel = num_rels_per_query - num_rel
+        sampled_rel_qrels = random.sample(
+            relevant_qrels, min(num_rel, len(relevant_qrels))
+        )
+        sampled_non_rel_qrels = random.sample(
+            non_relevant_qrels, min(num_non_rel, len(non_relevant_qrels))
+        )
+        stratified_qrels.extend(sampled_rel_qrels + sampled_non_rel_qrels)
+    # Convert IDs to text
+    stratified_samples = []
+    for qrel in stratified_qrels:
+        stratified_samples.append(
+            {
+                "query_text": queries[qrel["query_id"]],
+                "doc_text": docs[qrel["doc_id"]],
+                "relevance": qrel["relevance"],
+            }
+        )
     return stratified_samples
 
 
-def save_samples(samples, file_path):
-    """Save the samples to a file.
+# Function to load the text for queries and documents
+def load_texts(dataset):
+    """Load the text for queries and documents.
 
     Args:
-        samples: The samples to save.
-        file_path: The path to the file where the samples will be saved.
+        dataset_name: The name of the dataset to load (check ir_datasets).
+
+    Returns:
+        dict: A dictionary containing the queries and documents.
     """
-    with open(file_path, "w") as f:
-        for sample in samples:
-            f.write(json.dumps(sample) + "\n")
+    queries = {query.query_id: query.text for query in dataset.queries_iter()}
+    docs = {doc.doc_id: doc.text for doc in dataset.docs_iter()}
+    return queries, docs
+
+
+# Function to create dataset with text data
+def create_dataset_with_text(qrels, queries, docs):
+    """Create a dataset with text data.
+
+    Args:
+        qrels: The relevance judgments.
+        queries: The queries.
+        docs: The documents/passage.
+
+    Returns:
+        list: A list of dictionaries containing the query text, document text,
+              and relevance judgment.
+    """
+    data_with_text = []
+    for qrel in qrels:
+        query_text = queries.get(qrel["query_id"], None)
+        doc_text = docs.get(qrel["doc_id"], None)
+        if query_text is not None and doc_text is not None:
+            data_with_text.append(
+                {
+                    "query_text": query_text,
+                    "doc_text": doc_text,
+                    "relevance": qrel["relevance"],
+                }
+            )
+    return data_with_text
 
 
 if __name__ == "__main__":
     spinner = Halo(text="Loading datasets...", spinner="dots")
     spinner.start()
+
     # Load datasets
-    trec_qrels_dataset = ir_datasets.load(
-        "msmarco-passage-v2/trec-dl-2021"
-    ).qrels_iter()
-    train_qrels_dataset = ir_datasets.load(
-        "msmarco-passage-v2/train"
-    ).qrels_iter()
+    trec_dataset = ir_datasets.load("msmarco-passage-v2/trec-dl-2021")
+    train_dataset = ir_datasets.load("msmarco-passage-v2/train")
     spinner.succeed("Datasets loaded!")
 
-    # Convert the datasets to binary format
-    spinner.start("Converting datasets to binary format...")
-    trec_qrels_binary = list(convert_to_binary(trec_qrels_dataset))
-    spinner.succeed("Datasets converted to binary format.")
+    # Load query and document texts
+    spinner.start("Loading text data for trec-dl-2021 and train datasets...")
+    trec_queries, trec_docs = load_texts(trec_dataset)
+    train_queries, train_docs = load_texts(train_dataset)
+    spinner.succeed("Text data loaded!")
 
-    # Create a list of doc IDs for negative sampling
-    spinner.start("Creating negative samples...")
-    all_doc_ids = set()
-    for qrel in train_qrels_dataset:
-        all_doc_ids.add(qrel.doc_id)
+    # Convert trec-dl-2021 relevance judgments to binary format
+    spinner.start("Converting trec-dl-2021 datasets to binary format...")
+    trec_qrels_binary = list(convert_to_binary(trec_dataset.qrels_iter()))
+    spinner.succeed("trec-dl-2021 datasets converted to binary format.")
 
-    train_qrels_binary = []
-    for qrel in train_qrels_dataset:
-        train_qrels_binary.append(
-            {
-                "query_id": qrel.query_id,
-                "doc_id": qrel.doc_id,
-                "relevance": qrel.relevance,
-            }
-        )
-
-    # Create a set of doc_ids that have been used in train_qrels_binary
-    used_doc_ids = set()
-    for qrel in train_qrels_binary:
-        used_doc_ids.add(qrel["doc_id"])
-
-    # Determine doc_ids for negative sampling
-    doc_ids_for_negative_sampling = all_doc_ids - used_doc_ids
-
-    negative_samples = negative_sampling(
-        train_qrels_binary, doc_ids_for_negative_sampling
+    # Negative sampling for train qrels
+    spinner.start("Creating negative samples for train qrels...")
+    combined_train_qrels = negative_sampling(
+        train_dataset.qrels_iter(), train_docs
     )
-    spinner.succeed("Negative samples created.")
+    spinner.succeed("Negative samples created for train qrels.")
 
-    # Combine positive and negative samples for train qrels
-    combined_train_qrels = train_qrels_binary + negative_samples
-
-    # Creating depth-based and shallow-based training sets
-
-    # Depth-based training sets
+    # Creating depth-based training sets
     spinner.start("Creating depth-based 50/50 training set...")
-    depth_50_50 = stratify_qrels(trec_qrels_binary, 50, 50, 0)
+    depth_50_50 = create_stratified_sample(
+        trec_qrels_binary, trec_queries, trec_docs, 50, 50, 0.5
+    )  # Adjust the ratio as needed
     spinner.succeed(
-        "Depth-based 50/50 training set created. Size: ", len(depth_50_50)
+        f"Depth-based 50/50 training set created. Size: {len(depth_50_50)}"
     )
 
     spinner.start("Creating depth-based 50/100 training set...")
-    depth_50_100 = stratify_qrels(trec_qrels_binary, 50, 100, 0)
+    depth_50_100 = create_stratified_sample(
+        trec_qrels_binary, trec_queries, trec_docs, 50, 100, 0.5
+    )  # Adjust the ratio as needed
     spinner.succeed(
-        "Depth-based 50/100 training set created. Size: ", len(depth_50_100)
+        f"Depth-based 50/100 training set created. Size: {len(depth_50_100)}"
     )
 
-    # Shallow-based training sets (1:1 ratio)
+    # Creating shallow-based training sets
     spinner.start("Creating shallow-based 2500/1 training set...")
-    shallow_2500_1 = stratify_qrels(combined_train_qrels, 2500, 1, 1)
+    shallow_2500_1 = create_stratified_sample(
+        combined_train_qrels, train_queries, train_docs, 2500, 1, 0.5
+    )  # Adjust the ratio as needed
     spinner.succeed(
-        "Shallow-based 2500/1 training set created. Size: ", len(shallow_2500_1)
+        f"Shallow-based 2500/1 training set created. "
+        f"Size: {len(shallow_2500_1)}"
     )
 
     spinner.start("Creating shallow-based 5000/1 training set...")
-    shallow_5000_1 = stratify_qrels(combined_train_qrels, 5000, 1, 1)
+    shallow_5000_1 = create_stratified_sample(
+        combined_train_qrels, train_queries, train_docs, 5000, 1, 0.5
+    )  # Adjust the ratio as needed
     spinner.succeed(
-        "Shallow-based 5000/1 training set created. Size: ", len(shallow_5000_1)
+        f"Shallow-based 5000/1 training set created. "
+        f"Size: {len(shallow_5000_1)}"
     )
 
-    # Convert the training sets to datasets
-    spinner.start("Converting training sets to datasets...")
-    depth_50_50_dataset = Dataset.from_dict(depth_50_50)
-    depth_50_100_dataset = Dataset.from_dict(depth_50_100)
-    shallow_2500_1_dataset = Dataset.from_dict(shallow_2500_1)
-    shallow_5000_1_dataset = Dataset.from_dict(shallow_5000_1)
-    spinner.succeed("Training sets converted to datasets.")
+    # Convert the training sets to Hugging Face datasets
+    spinner.start("Converting training sets to Hugging Face datasets...")
+    depth_50_50_dataset = Dataset.from_pandas(pd.DataFrame(depth_50_50))
+    depth_50_100_dataset = Dataset.from_pandas(pd.DataFrame(depth_50_100))
+    shallow_2500_1_dataset = Dataset.from_pandas(pd.DataFrame(shallow_2500_1))
+    shallow_5000_1_dataset = Dataset.from_pandas(pd.DataFrame(shallow_5000_1))
+    spinner.succeed("Training sets converted to Hugging Face datasets.")
 
     # Save the datasets
     spinner.start("Saving datasets to disk...")
-    depth_50_50_dataset.save_to_disk("../data/trainingsets/depth_50_50")
-    depth_50_100_dataset.save_to_disk("../data/trainingsets/depth_50_100")
-    shallow_2500_1_dataset.save_to_disk("../data/trainingsets/shallow_2500_1")
-    shallow_5000_1_dataset.save_to_disk("../data/trainingsets/shallow_5000_1")
+    depth_50_50_dataset.save_to_disk("/path/to/save/depth_50_50")
+    depth_50_100_dataset.save_to_disk("/path/to/save/depth_50_100")
+    shallow_2500_1_dataset.save_to_disk("/path/to/save/shallow_2500_1")
+    shallow_5000_1_dataset.save_to_disk("/path/to/save/shallow_5000_1")
     spinner.succeed("Datasets saved to disk.")
