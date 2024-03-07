@@ -30,7 +30,7 @@ def select_queries(qrels_by_query_id, num_queries, num_rels_per_query):
 
 
 def create_non_relevant_examples(
-    training_set, selected_queries, qrels_by_query_id
+    training_set, selected_queries, qrels_by_query_id, swap_prob=0.5
 ):
     """Create non-relevant examples by swapping passages between queries.
 
@@ -39,26 +39,28 @@ def create_non_relevant_examples(
         selected_queries (list): list of selected queries.
         qrels_by_query_id (dict): dictionary with relevance judgments by
         query id.
+        swap_prob (float): probability of non-relevant examples to create.
 
     Returns:
         list: training set with non-relevant examples.
     """
     for i in range(len(training_set)):
-        # Randomly select a different query
-        different_query_id = random.choice(selected_queries)
-        while different_query_id == training_set[i][0]:
+        if random.random() < swap_prob:
+            # Randomly select a different query
             different_query_id = random.choice(selected_queries)
+            while different_query_id == training_set[i][0]:
+                different_query_id = random.choice(selected_queries)
 
-        # Get the list of documents that are relevant to the different query
-        relevant_docs = []
-        for qrel in qrels_by_query_id[different_query_id]:
-            relevant_docs.append(qrel.doc_id)
+            # Get the list of documents that are relevant to the different query
+            relevant_docs = []
+            for qrel in qrels_by_query_id[different_query_id]:
+                relevant_docs.append(qrel.doc_id)
 
-        # Randomly select a relevant document from the different query
-        swapped_doc_id = random.choice(relevant_docs)
+            # Randomly select a relevant document from the different query
+            swapped_doc_id = random.choice(relevant_docs)
 
-        # Replace the document in the training set with the swapped document
-        training_set[i] = (training_set[i][0], swapped_doc_id, 0)
+            # Replace the document in the training set with the swapped document
+            training_set[i] = (training_set[i][0], swapped_doc_id, 0)
     return training_set
 
 
