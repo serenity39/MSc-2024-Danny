@@ -17,10 +17,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
-from sklearn.metrics import (  # noqa: E402
-    label_ranking_average_precision_score,
-    ndcg_score,
-)
+from sklearn.metrics import average_precision_score, ndcg_score  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
 from transformers import (  # noqa: E402
     BertForSequenceClassification,
@@ -182,7 +179,7 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
     return avg_loss
 
 
-def evaluate_model(model, val_data_loader, device_):
+def evaluate_model(model, validation_dataloader, device_):
     """Evaluates the BERT model on the validation data.
 
     This function evaluates the model on the validation data and returns the
@@ -197,38 +194,37 @@ def evaluate_model(model, val_data_loader, device_):
         float: The mean average precision (MAP) score.
         float: The normalized discounted cumulative gain (NDCG) score.
     """
-    model.eval()  # set the model to evaluation mode
-    y_true = []
-    y_scores = []
-
+    model.eval()
+    total_map = 0
+    total_ndcg = 0
     with torch.no_grad():
-        for batch in val_data_loader:
-            input_ids = batch["input_ids"].to(device_)
-            attention_mask = batch["attention_mask"].to(device_)
-            labels = batch["labels"].to(device_)
-            outputs = model(input_ids, attention_mask=attention_mask)
-            logits = outputs.logits
+        for batch in validation_dataloader:
+            # Process your batch to prepare inputs and labels
+            inputs, labels = batch
+            inputs = inputs.to(device_)
+            labels = labels.to(device_)
 
-            # Apply the threshold to convert relevance judgments
-            # Convert 1, 2, 3 to 1, and 0 to 0
-            # (used to match the binary relevance format)
-            relevance = (labels > 0).long()
+            # Obtain model predictions
+            outputs = model(inputs)
 
-            y_true.append(relevance.cpu().numpy())
-            y_scores.append(torch.softmax(logits, dim=1).cpu().numpy())
+            # Convert outputs to probabilities if necessary
+            probabilities = torch.sigmoid(outputs).cpu().numpy()
 
-    # Flatten the outputs
-    y_true = np.concatenate(y_true, axis=0)
-    y_scores = np.concatenate(y_scores, axis=0)
+            # Calculate MAP and NDCG for the batch
+            batch_map = average_precision_score(
+                labels.cpu().numpy(), probabilities
+            )
+            batch_ndcg = ndcg_score([labels.cpu().numpy()], [probabilities])
 
-    # Calculate MAP and NDCG
-    map_score = label_ranking_average_precision_score(y_true, y_scores)
-    # For ndcg_score, the input should be 2D
-    y_true_2d = y_true.reshape(-1, 1)
-    y_scores_2d = y_scores[:, 1].reshape(-1, 1)
-    ndcg_value = ndcg_score(y_true_2d, y_scores_2d)
+            # Aggregate the scores
+            total_map += batch_map
+            total_ndcg += batch_ndcg
 
-    return map_score, ndcg_value
+        # Calculate average scores over all batches
+        avg_map = total_map / len(validation_dataloader)
+        avg_ndcg = total_ndcg / len(validation_dataloader)
+
+    return avg_map, avg_ndcg
 
 
 def main():
