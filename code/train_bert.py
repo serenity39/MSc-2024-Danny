@@ -15,7 +15,6 @@ import os
 # Specify the GPU ID to use
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
-import numpy as np  # noqa: E402
 import torch  # noqa: E402
 from sklearn.metrics import average_precision_score, ndcg_score  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
@@ -214,8 +213,11 @@ def evaluate_model(model, validation_dataloader, device_):
             # Obtain model predictions
             outputs = model(**batch_on_device)
 
+            # Extract the logits from the model outputs
+            logits = outputs.logits
+
             # Convert outputs to probabilities if necessary
-            probabilities = torch.sigmoid(outputs).cpu().numpy()
+            probabilities = torch.sigmoid(logits).cpu().numpy()
 
             # Calculate MAP and NDCG for the batch
             batch_map = average_precision_score(
