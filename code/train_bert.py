@@ -207,9 +207,6 @@ def evaluate_model(model, validation_dataloader, device_):
             }
             labels = batch["labels"].to(device_)
 
-            inputs = inputs.to(device_)
-            labels = labels.to(device_)
-
             # Obtain model predictions
             outputs = model(inputs)
 
