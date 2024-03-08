@@ -219,7 +219,7 @@ def evaluate_model(model, val_data_loader, device_):
 
     # Now, calculate the metrics across the entire dataset
     avg_map = average_precision_score(all_labels, all_probabilities)
-    avg_ndcg = ndcg_score([all_labels], [all_probabilities.reshape(-1, 1)])
+    avg_ndcg = ndcg_score([all_labels], [all_probabilities])
 
     return avg_map, avg_ndcg
 
