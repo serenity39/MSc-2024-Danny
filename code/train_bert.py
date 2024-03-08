@@ -15,7 +15,6 @@ import os
 # Specify the GPU ID to use
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
-import numpy as np  # noqa: E402
 import torch  # noqa: E402
 from sklearn.metrics import average_precision_score, ndcg_score  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
@@ -156,7 +155,7 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
         total_loss += loss.item()
 
         # Logging loss
-        if step % 10 == 0:
+        if step % 5 == 0:
             logging.info(f"Step {step} - loss: {loss.item()}")
 
         # Checkpoint saving
@@ -197,36 +196,38 @@ def evaluate_model(model, val_data_loader, device_):
     model.eval()
     total_map = 0.0
     total_ndcg = 0.0
-    n_batches = 0
+    num_batches = 0
 
     with torch.no_grad():
         for batch in val_data_loader:
             inputs = {
-                k: v.to(device_) for k, v in batch.items() if k != "labels"
+                "input_ids": batch["input_ids"].to(device_),
+                "attention_mask": batch["attention_mask"].to(device_),
+                "token_type_ids": batch.get(
+                    "token_type_ids", torch.tensor([])
+                ).to(device_),
             }
-            labels = batch["labels"].to(device_)
+            labels = batch["labels"].to(device_)  # Binary relevance scores
             outputs = model(**inputs)
             logits = outputs.logits
-            probabilities = torch.sigmoid(logits)[:, 1].cpu().numpy()
+            probabilities = (
+                torch.sigmoid(logits)[:, 1].cpu().numpy()
+            )  # Assuming column 1 is the positive class
+
+            # Ensure labels is a binary array for each sample
             labels_np = labels.cpu().numpy()
 
-            # Ensure there's at least one positive label in the dataset
-            if np.sum(labels_np) == 0:
-                continue
-
+            # Calculate MAP and NDCG for the batch
             batch_map = average_precision_score(labels_np, probabilities)
-            batch_ndcg = ndcg_score([labels_np], [probabilities.reshape(-1, 1)])
+            batch_ndcg = ndcg_score([labels_np], [probabilities])
 
-            if not np.isnan(batch_map) and not np.isnan(batch_ndcg):
-                total_map += batch_map
-                total_ndcg += batch_ndcg
-                n_batches += 1
+            total_map += batch_map
+            total_ndcg += batch_ndcg
+            num_batches += 1
 
-    if n_batches > 0:
-        avg_map = total_map / n_batches
-        avg_ndcg = total_ndcg / n_batches
-    else:
-        avg_map, avg_ndcg = 0.0, 0.0  # Handle case with no valid batches
+    # Calculate average scores over all batches
+    avg_map = total_map / num_batches
+    avg_ndcg = total_ndcg / num_batches
 
     return avg_map, avg_ndcg
 
