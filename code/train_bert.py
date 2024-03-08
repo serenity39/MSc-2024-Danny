@@ -265,7 +265,7 @@ def main():
 
     # Save the pre-trained model
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
-    logging.info(f"Pre-trained model saved to {MODEL_SAVE_PATH}")
+    logging.info(f"Fine-tuned model saved to {MODEL_SAVE_PATH}")
 
 
 if __name__ == "__main__":
