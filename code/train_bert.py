@@ -219,11 +219,19 @@ def evaluate_model(model, validation_dataloader, device_):
             # Convert outputs to probabilities if necessary
             probabilities = torch.sigmoid(logits).cpu().numpy()
 
+            # If labels are one-hot encoded, extract the positive class probabilities
+            if labels.dim() > 1 and labels.size(1) == 2:
+                positive_class_probs = probabilities[
+                    :, 1
+                ]  # Extract probabilities of the positive class
+                labels = labels[:, 1]
+
+            # Convert labels to a 1D numpy array if not already
+            labels_np = labels.cpu().numpy()
+
             # Calculate MAP and NDCG for the batch
-            batch_map = average_precision_score(
-                labels.cpu().numpy(), probabilities
-            )
-            batch_ndcg = ndcg_score([labels.cpu().numpy()], [probabilities])
+            batch_map = average_precision_score(labels_np, positive_class_probs)
+            batch_ndcg = ndcg_score([labels_np], [positive_class_probs])
 
             # Aggregate the scores
             total_map += batch_map
