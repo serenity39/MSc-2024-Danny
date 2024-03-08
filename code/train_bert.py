@@ -179,6 +179,11 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
     return avg_loss
 
 
+import numpy as np
+import torch
+from sklearn.metrics import average_precision_score, ndcg_score
+
+
 def evaluate_model(model, val_data_loader, device_):
     """Evaluates the BERT model on the validation data.
 
@@ -197,31 +202,38 @@ def evaluate_model(model, val_data_loader, device_):
     model.eval()
     total_map = 0.0
     total_ndcg = 0.0
+    num_batches = 0
+
     with torch.no_grad():
         for batch in val_data_loader:
             inputs = {
                 "input_ids": batch["input_ids"].to(device_),
                 "attention_mask": batch["attention_mask"].to(device_),
-                "token_type_ids": batch["token_type_ids"].to(device_),
+                "token_type_ids": batch.get(
+                    "token_type_ids", torch.tensor([])
+                ).to(device_),
             }
             labels = batch["labels"].to(device_)  # Binary relevance scores
-
             outputs = model(**inputs)
             logits = outputs.logits
-            probabilities = torch.sigmoid(logits)[:, 1].cpu().numpy()
+            probabilities = (
+                torch.sigmoid(logits)[:, 1].cpu().numpy()
+            )  # Assuming column 1 is the positive class
 
+            # Ensure labels is a binary array for each sample
             labels_np = labels.cpu().numpy()
-            for i, label in enumerate(labels_np):
-                if np.sum(label) > 0:  # Check if there are positive labels
-                    # Calculate MAP and NDCG for samples with positive labels
-                    batch_map = average_precision_score(label, probabilities[i])
-                    batch_ndcg = ndcg_score([label], [probabilities[i]])
-                    total_map += batch_map
-                    total_ndcg += batch_ndcg
 
-    # Calculate average scores over all batches with positive labels
-    avg_map = total_map / len(val_data_loader)
-    avg_ndcg = total_ndcg / len(val_data_loader)
+            # Calculate MAP and NDCG for the batch
+            batch_map = average_precision_score(labels_np, probabilities)
+            batch_ndcg = ndcg_score([labels_np], [probabilities])
+
+            total_map += batch_map
+            total_ndcg += batch_ndcg
+            num_batches += 1
+
+    # Calculate average scores over all batches
+    avg_map = total_map / num_batches
+    avg_ndcg = total_ndcg / num_batches
 
     return avg_map, avg_ndcg
 
