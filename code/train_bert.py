@@ -34,11 +34,11 @@ tf_logging.set_verbosity_error()
 # Configuration
 
 # Path to the data
-INPUT_TEXT = "../data/trainingsets/inputs_depth_50_100.csv"
-OUTPUT_DIR = "../data/results/depth_50_100/"
+INPUT_TEXT = "../data/trainingsets/inputs_shallow_2500_1.csv"
+OUTPUT_DIR = "../data/results/shallow_2500_1/"
 VAL_DATA = "../data/validationdata/validation_data.csv"
 # Change name of model
-MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_depth_50_100.pt")
+MODEL_SAVE_PATH = os.path.join(OUTPUT_DIR, "bert_shallow_2500_1.pt")
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 32
 NUM_EPOCHS = 3
