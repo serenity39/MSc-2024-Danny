@@ -156,7 +156,7 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
         total_loss += loss.item()
 
         # Logging loss
-        if step % 100 == 0:
+        if step % 10 == 0:
             logging.info(f"Step {step} - loss: {loss.item()}")
 
         # Checkpoint saving
@@ -179,11 +179,6 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
     return avg_loss
 
 
-import numpy as np
-import torch
-from sklearn.metrics import average_precision_score, ndcg_score
-
-
 def evaluate_model(model, val_data_loader, device_):
     """Evaluates the BERT model on the validation data.
 
@@ -202,38 +197,36 @@ def evaluate_model(model, val_data_loader, device_):
     model.eval()
     total_map = 0.0
     total_ndcg = 0.0
-    num_batches = 0
+    n_batches = 0
 
     with torch.no_grad():
         for batch in val_data_loader:
             inputs = {
-                "input_ids": batch["input_ids"].to(device_),
-                "attention_mask": batch["attention_mask"].to(device_),
-                "token_type_ids": batch.get(
-                    "token_type_ids", torch.tensor([])
-                ).to(device_),
+                k: v.to(device_) for k, v in batch.items() if k != "labels"
             }
-            labels = batch["labels"].to(device_)  # Binary relevance scores
+            labels = batch["labels"].to(device_)
             outputs = model(**inputs)
             logits = outputs.logits
-            probabilities = (
-                torch.sigmoid(logits)[:, 1].cpu().numpy()
-            )  # Assuming column 1 is the positive class
-
-            # Ensure labels is a binary array for each sample
+            probabilities = torch.sigmoid(logits)[:, 1].cpu().numpy()
             labels_np = labels.cpu().numpy()
 
-            # Calculate MAP and NDCG for the batch
+            # Ensure there's at least one positive label in the dataset
+            if np.sum(labels_np) == 0:
+                continue
+
             batch_map = average_precision_score(labels_np, probabilities)
-            batch_ndcg = ndcg_score([labels_np], [probabilities])
+            batch_ndcg = ndcg_score([labels_np], [probabilities.reshape(-1, 1)])
 
-            total_map += batch_map
-            total_ndcg += batch_ndcg
-            num_batches += 1
+            if not np.isnan(batch_map) and not np.isnan(batch_ndcg):
+                total_map += batch_map
+                total_ndcg += batch_ndcg
+                n_batches += 1
 
-    # Calculate average scores over all batches
-    avg_map = total_map / num_batches
-    avg_ndcg = total_ndcg / num_batches
+    if n_batches > 0:
+        avg_map = total_map / n_batches
+        avg_ndcg = total_ndcg / n_batches
+    else:
+        avg_map, avg_ndcg = 0.0, 0.0  # Handle case with no valid batches
 
     return avg_map, avg_ndcg
 
@@ -275,9 +268,7 @@ def main():
         logging.info(f"Epoch {epoch} - Average loss: {avg_loss}")
 
     map_score, ndcg_value = evaluate_model(model, val_data_loader, device)
-    logging.info(
-        f"Validation - Epoch: {epoch}, MAP: {map_score}, NDCG: {ndcg_value}"
-    )
+    logging.info(f"Validation - MAP: {map_score}, NDCG: {ndcg_value}")
 
     # Save the pre-trained model
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
