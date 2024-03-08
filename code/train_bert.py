@@ -15,6 +15,7 @@ import os
 # Specify the GPU ID to use
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
+import numpy as np  # noqa: E402
 import torch  # noqa: E402
 from sklearn.metrics import average_precision_score, ndcg_score  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
@@ -178,7 +179,7 @@ def train(model, data_loader, optimizer, scheduler, device_, epoch, save_path):
     return avg_loss
 
 
-def evaluate_model(model, validation_dataloader, device_):
+def evaluate_model(model, val_data_loader, device_):
     """Evaluates the BERT model on the validation data.
 
     This function evaluates the model on the validation data and returns the
@@ -194,58 +195,33 @@ def evaluate_model(model, validation_dataloader, device_):
         float: The normalized discounted cumulative gain (NDCG) score.
     """
     model.eval()
-    total_map = 0
-    total_ndcg = 0
+    total_map = 0.0
+    total_ndcg = 0.0
     with torch.no_grad():
-        for batch in validation_dataloader:
-            # Process your batch to prepare inputs and labels
-            input_ids = batch["input_ids"].to(device_)
-            attention_mask = batch["attention_mask"].to(device_)
-            token_type_ids = batch["token_type_ids"].to(device_)
-            labels = batch["labels"].to(device_)
-
-            batch_on_device = {
-                "input_ids": input_ids,
-                "attention_mask": attention_mask,
-                "token_type_ids": token_type_ids,
+        for batch in val_data_loader:
+            inputs = {
+                "input_ids": batch["input_ids"].to(device_),
+                "attention_mask": batch["attention_mask"].to(device_),
+                "token_type_ids": batch["token_type_ids"].to(device_),
             }
+            labels = batch["labels"].to(device_)  # Binary relevance scores
 
-            # Obtain model predictions
-            outputs = model(**batch_on_device)
-
-            # Extract the logits from the model outputs
+            outputs = model(**inputs)
             logits = outputs.logits
+            probabilities = torch.sigmoid(logits)[:, 1].cpu().numpy()
 
-            # Convert outputs to probabilities if necessary
-            probabilities = torch.sigmoid(logits).cpu().numpy()
+            labels_np = labels.cpu().numpy()
+            for i, label in enumerate(labels_np):
+                if np.sum(label) > 0:  # Check if there are positive labels
+                    # Calculate MAP and NDCG for samples with positive labels
+                    batch_map = average_precision_score(label, probabilities[i])
+                    batch_ndcg = ndcg_score([label], [probabilities[i]])
+                    total_map += batch_map
+                    total_ndcg += batch_ndcg
 
-            # Check the shape of labels to decide how to extract
-            # positive class probabilities
-            if labels.dim() > 1 and labels.size(1) == 2:
-                positive_class_probs = probabilities[:, 1]
-                labels = labels[:, 1].cpu().numpy()
-            else:
-                # Handle other cases, e.g., binary classification with
-                # a single output node
-                positive_class_probs = probabilities.squeeze()
-                labels = labels.cpu().numpy()
-
-            if positive_class_probs is not None:
-                # Calculate MAP and NDCG for the batch
-                batch_map = average_precision_score(
-                    labels, positive_class_probs
-                )
-                batch_ndcg = ndcg_score([labels], [positive_class_probs])
-            else:
-                print("Positive class probabilities are None.")
-                print(positive_class_probs)
-            # Aggregate the scores
-            total_map += batch_map
-            total_ndcg += batch_ndcg
-
-        # Calculate average scores over all batches
-        avg_map = total_map / len(validation_dataloader)
-        avg_ndcg = total_ndcg / len(validation_dataloader)
+    # Calculate average scores over all batches with positive labels
+    avg_map = total_map / len(val_data_loader)
+    avg_ndcg = total_ndcg / len(val_data_loader)
 
     return avg_map, avg_ndcg
 
