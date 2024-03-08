@@ -210,9 +210,7 @@ def evaluate_model(model, val_data_loader, device_):
             labels = batch["labels"].to(device_)  # Binary relevance scores
             outputs = model(**inputs)
             logits = outputs.logits
-            probabilities = (
-                torch.sigmoid(logits)[:, 1].cpu().numpy()
-            )  # Assuming column 1 is the positive class
+            probabilities = torch.sigmoid(logits)[:, 0].cpu().numpy()
 
             # Ensure labels is a binary array for each sample
             labels_np = labels.cpu().numpy()
