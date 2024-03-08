@@ -194,9 +194,8 @@ def evaluate_model(model, val_data_loader, device_):
         float: The normalized discounted cumulative gain (NDCG) score.
     """
     model.eval()
-    total_map = 0.0
-    total_ndcg = 0.0
-    num_batches = 0
+    all_probabilities = []
+    all_labels = []
 
     with torch.no_grad():
         for batch in val_data_loader:
@@ -207,25 +206,20 @@ def evaluate_model(model, val_data_loader, device_):
                     "token_type_ids", torch.tensor([])
                 ).to(device_),
             }
-            labels = batch["labels"].to(device_)  # Binary relevance scores
+            labels = batch["labels"].to(device_)
             outputs = model(**inputs)
             logits = outputs.logits
-            probabilities = torch.sigmoid(logits)[:, 0].cpu().numpy()
-
-            # Ensure labels is a binary array for each sample
+            probabilities = (
+                torch.sigmoid(logits)[:, 1].cpu().numpy()
+            )  # Assuming column 1 is the positive class
             labels_np = labels.cpu().numpy()
 
-            # Calculate MAP and NDCG for the batch
-            batch_map = average_precision_score(labels_np, probabilities)
-            batch_ndcg = ndcg_score([labels_np], [probabilities])
+            all_probabilities.extend(probabilities)
+            all_labels.extend(labels_np)
 
-            total_map += batch_map
-            total_ndcg += batch_ndcg
-            num_batches += 1
-
-    # Calculate average scores over all batches
-    avg_map = total_map / num_batches
-    avg_ndcg = total_ndcg / num_batches
+    # Now, calculate the metrics across the entire dataset
+    avg_map = average_precision_score(all_labels, all_probabilities)
+    avg_ndcg = ndcg_score([all_labels], [all_probabilities.reshape(-1, 1)])
 
     return avg_map, avg_ndcg
 
