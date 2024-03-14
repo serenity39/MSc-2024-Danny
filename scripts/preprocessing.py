@@ -99,6 +99,7 @@ def create_training_set(dataset, num_queries, num_rels_per_query, seed=42):
         qrels_by_query_id[qrel.query_id].append((qrel.doc_id, qrel.relevance))
         docid_set.add(qrel.doc_id)
 
+    # Select queries with the specified number of relevance judgments
     selected_queries = select_queries(
         qrels_by_query_id, num_queries, num_rels_per_query
     )
@@ -109,14 +110,14 @@ def create_training_set(dataset, num_queries, num_rels_per_query, seed=42):
         )
 
         # Generate negative examples
-        positive_docid = {doc[0] for doc in positive_docs}
-        negative_docid = list(docid_set - positive_docid)
-        negative_docs = random.sample(negative_docid, num_rels_per_query)
+        positive_doc_id = {doc[0] for doc in positive_docs}
+        negative_doc_id = list(docid_set - positive_doc_id)
+        negative_docs = random.sample(negative_doc_id, num_rels_per_query)
 
         # Add both positive and negative examples to the training set
         for pos_doc in positive_docs:
-            docid = pos_doc[0]
-            training_set.append((qid, docid, 1))
+            doc_id = pos_doc[0]
+            training_set.append((qid, doc_id, 1))
 
         for neg_docid in negative_docs:
             training_set.append((qid, neg_docid, 0))
@@ -135,22 +136,32 @@ def training_set_to_dataset(training_set, query_text_map, doc_text_map):
     Returns:
         Dataset: Huggingface dataset with the training set information.
     """
-    data = []
+    # Initialize lists to hold column data
+    query_ids = []
+    doc_ids = []
+    query_texts = []
+    doc_texts = []
+    relevances = []
+
+    # Populate the lists with data from the training set
     for query_id, doc_id, relevance in training_set:
-        query_text = query_text_map[query_id]
-        doc_text = doc_text_map[doc_id]
-        data.append(
-            {
-                "query_id": query_id,
-                "doc_id": doc_id,
-                "query_text": query_text,
-                "doc_text": doc_text,
-                "relevance": relevance,
-            }
-        )
+        query_ids.append(query_id)
+        doc_ids.append(doc_id)
+        query_texts.append(query_text_map[query_id])
+        doc_texts.append(doc_text_map[doc_id])
+        relevances.append(relevance)
+
+    # Create a dictionary that maps column names to data lists
+    data_dict = {
+        "query_id": query_ids,
+        "doc_id": doc_ids,
+        "query_text": query_texts,
+        "doc_text": doc_texts,
+        "relevance": relevances,
+    }
 
     # Convert to Huggingface dataset
-    dataset = Dataset.from_dict(data)
+    dataset = Dataset.from_dict(data_dict)
     return dataset
 
 
