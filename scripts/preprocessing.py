@@ -31,7 +31,7 @@ def select_queries(qrels_by_query_id, num_queries, num_rels_per_query):
         # Filter for relevance score of 1 or larger
         relevant_qrels = []
         for qrel in qrels_by_query_id[query]:
-            if qrel.relevance >= 1:
+            if qrel[1] >= 1:
                 relevant_qrels.append(qrel)
 
         # Only select queries with enough relevant documents
@@ -104,9 +104,9 @@ def create_training_set(dataset, num_queries, num_rels_per_query, seed=42):
         qrels_by_query_id, num_queries, num_rels_per_query
     )
 
-    for query_id in selected_queries:
+    for qid in selected_queries:
         positive_docs = random.sample(
-            qrels_by_query_id[query_id], num_rels_per_query
+            qrels_by_query_id[qid], num_rels_per_query
         )
         negative_docs = []
 
@@ -114,17 +114,18 @@ def create_training_set(dataset, num_queries, num_rels_per_query, seed=42):
         while len(negative_docs) < num_rels_per_query:
             potential_neg_doc_id = random.choice(list(docid_set))
             if all(
-                potential_neg_doc_id != qrel.doc_id
-                for qrel in qrels_by_query_id[query_id]
+                potential_neg_doc_id != qrel[0]
+                for qrel in qrels_by_query_id[qid]
             ):
                 negative_docs.append(potential_neg_doc_id)
 
         # Add both positive and negative examples to the training set
         for pos_doc in positive_docs:
-            training_set.append((query_id, pos_doc.doc_id, 1))
+            doc_id = pos_doc[0]
+            training_set.append((qid, doc_id, 1))
 
         for neg_doc_id in negative_docs:
-            training_set.append((query_id, neg_doc_id, 0))
+            training_set.append((qid, neg_doc_id, 0))
 
     return training_set
 
