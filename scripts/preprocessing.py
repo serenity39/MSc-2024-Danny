@@ -154,6 +154,25 @@ def training_set_to_dataset(training_set, query_text_map, doc_text_map):
     return dataset
 
 
+def check_training_set(training_set):
+    """Check the size and number of positive and negative examples.
+
+    Args:
+        training_set: The training set to check.
+        Created with create_training_set.
+    """
+    # Total size of the training set
+    total_size = len(training_set)
+
+    # Count positive and negative examples
+    num_positive = sum(1 for _, _, label in training_set if label == 1)
+    num_negative = total_size - num_positive
+
+    print(f"Total size of the training set: {total_size}")
+    print(f"Number of positive examples: {num_positive}")
+    print(f"Number of negative examples: {num_negative}")
+
+
 if __name__ == "__main__":
     spinner = Halo(text="Loading datasets...", spinner="dots")
 
@@ -172,12 +191,16 @@ if __name__ == "__main__":
     # Generate training sets
     spinner.start("Creating depth-based training sets...")
     depth_based_50_50 = create_training_set(dataset_trec_2021, 50, 50)
+    check_training_set(depth_based_50_50)
     depth_based_50_100 = create_training_set(dataset_trec_2021, 50, 100)
+    check_training_set(depth_based_50_100)
     spinner.succeed("Depth-based training sets created.")
 
     spinner.start("Creating shallow-based training sets...")
     shallow_based_2500_1 = create_training_set(dataset_train, 2500, 1)
+    check_training_set(shallow_based_2500_1)
     shallow_based_5000_1 = create_training_set(dataset_train, 5000, 1)
+    check_training_set(shallow_based_5000_1)
     spinner.succeed("Shallow-based training sets created.")
 
     # Convert to Huggingface datasets
