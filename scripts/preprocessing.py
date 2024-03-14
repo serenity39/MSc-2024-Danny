@@ -1,233 +1,216 @@
-"""Preprocessing script making training sets for BERT."""
+"""Generate subsets of the training data for model training."""
 
 import random
+from collections import defaultdict
 
 import ir_datasets
-import pandas as pd
 from datasets import Dataset
 from halo import Halo
 
 
-# Convert trec-dl-2021 relevance judgments to binary format
-def convert_to_binary(trec_qrels):
-    """Converts the relevance judgments to binary format.
+def select_queries(qrels_by_query_id, num_queries, num_rels_per_query):
+    """Select queries with the number of relevance judgments specified.
+
+    Selects a specified number of queries with a given number of relevance
+    judgments per query. Queries are selected randomly from the provided
+    relevance judgments.
 
     Args:
-        trec_qrels: The relevance judgments from the TREC-DL-2021 dataset.
+        qrels_by_query_id (dict): dictionary containing relevance judgments by
+            query id.
+        num_queries (int): number of queries to select.
+        num_rels_per_query (int): number of relevant judgments per query.
 
     Returns:
-        dict: A dictionary containing the query ID, document ID, and
-              relevance judgment (0 or 1).
+        list: list of selected queries with the specified relevance criteria.
     """
-    binary_qrels = []
-    for qrel in trec_qrels:
-        binary_qrels.append(
-            {
-                "query_id": qrel["query_id"],
-                "doc_id": qrel["doc_id"],
-                "relevance": 1 if qrel["relevance"] > 0 else 0,
-            }
-        )
-    return binary_qrels
+    selected_queries = []
+    while len(selected_queries) < num_queries:
+        query = random.choice(list(qrels_by_query_id.keys()))
+
+        # Filter for relevance score of 1 or larger
+        relevant_qrels = []
+        for qrel in qrels_by_query_id[query]:
+            if qrel.relevance >= 1:
+                relevant_qrels.append(qrel)
+
+        # Only select queries with enough relevant documents
+        if len(relevant_qrels) >= num_rels_per_query:
+            if query not in selected_queries:
+                selected_queries.append(query)
+    return selected_queries
 
 
-# Negative sampling for train qrels
-def negative_sampling(train_qrels, docs, num_neg_samples=1):
-    """Sample negative examples for the training set.
+def map_ids_to_texts(dataset):
+    """Map query and document IDs to their respective texts.
+
+    This function creates a mapping from query and document IDs to their
+    respective texts using the provided dataset from ir_datasets.
 
     Args:
-        train_qrels: The qrels from the msmarco train set.
-        docs: The list of document IDs.
-        num_neg_samples (optional): Number of negative samples to take for
-        each query. Defaults to 1.
+        dataset: The dataset to extract the texts from.
 
     Returns:
-        list: A list of negative samples.
+        dict: A dictionary mapping query IDs to their texts.
+        dict: A dictionary mapping document IDs to their texts.
     """
-    sampled_qrels = []
-    all_doc_ids = set(docs.keys())
+    qid_to_text = {}
+    docid_to_text = {}
 
-    for qrel in train_qrels:
-        relevant_doc_id = qrel["doc_id"]
-        non_relevant_docs = list(all_doc_ids - set([relevant_doc_id]))
-        negative_samples = random.sample(non_relevant_docs, num_neg_samples)
-        sampled_qrels.append(qrel)
-        for doc_id in negative_samples:
-            sampled_qrels.append(
-                {"query_id": qrel["query_id"], "doc_id": doc_id, "relevance": 0}
-            )
-    return sampled_qrels
+    for query in dataset.queries_iter():
+        qid_to_text[query.query_id] = query.text
+
+    for doc in dataset.docs_iter():
+        docid_to_text[doc.doc_id] = doc.text
+
+    return qid_to_text, docid_to_text
 
 
-# Stratify the qrels to create the training sets
-def create_stratified_sample(
-    qrels, queries, docs, num_queries, num_rels_per_query, ratio
-):
-    """Create a stratified sample from the qrels.
+def create_training_set(dataset, num_queries, num_rels_per_query, seed=42):
+    """Generates a training set with equal positive and negative examples.
+
+    This function creates a training set by first randomly selecting a
+    specified number of queries. For each selected query, it then samples a
+    given number of relevant documents (positive examples) and an equal number
+    of non-relevant documents (negative examples). Non-relevant documents are
+    selected from the entire document set, excluding those marked as relevant
+    for the query.
 
     Args:
-        qrels: The relevance judgments.
-        queries: The queries.
-        docs: The documents/passage.
-        num_queries: Number of queries to sample.
-        num_rels_per_query: Number of relevance judgments to sample per query.
-        ratio: The ratio of relevant to non-relevant documents.
+        dataset: The dataset from which to generate the training set.
+            This dataset should be loaded with `ir_datasets`.
+        num_queries (int): The number of unique queries to include
+            in the training set.
+        num_rels_per_query (int): The number of relevant documents to sample
+            for each selected query.
+        seed (int, optional): A seed for the random number generator to ensure
+            reproducibility. Defaults to 42.
 
     Returns:
-        list: A list of dictionaries containing the query text, document text,
-              and relevance judgment.
+        list of tuples: Each tuple in the list represents a query-document pair,
+            consisting of the query ID, document ID, and a binary label
+            indicating relevance (1 for relevant, 0 for non-relevant).
     """
-    # Create stratified subsets based on the ratio
-    stratified_qrels = []
-    selected_queries = random.sample(list(queries.keys()), num_queries)
+    random.seed(seed)
+    training_set = []
+    qrels_by_query_id = defaultdict(list)
+    docid_set = set()
+
+    for qrel in dataset.qrels_iter():
+        qrels_by_query_id[qrel.query_id].append((qrel.doc_id, qrel.relevance))
+        docid_set.add(qrel.doc_id)
+
+    selected_queries = select_queries(
+        qrels_by_query_id, num_queries, num_rels_per_query
+    )
+
     for query_id in selected_queries:
-        query_qrels = [qrel for qrel in qrels if qrel["query_id"] == query_id]
-        relevant_qrels = [
-            qrel for qrel in query_qrels if qrel["relevance"] == 1
-        ]
-        non_relevant_qrels = [
-            qrel for qrel in query_qrels if qrel["relevance"] == 0
-        ]
-        num_rel = int(num_rels_per_query * ratio)
-        num_non_rel = num_rels_per_query - num_rel
-        sampled_rel_qrels = random.sample(
-            relevant_qrels, min(num_rel, len(relevant_qrels))
+        positive_docs = random.sample(
+            qrels_by_query_id[query_id], num_rels_per_query
         )
-        sampled_non_rel_qrels = random.sample(
-            non_relevant_qrels, min(num_non_rel, len(non_relevant_qrels))
-        )
-        stratified_qrels.extend(sampled_rel_qrels + sampled_non_rel_qrels)
-    # Convert IDs to text
-    stratified_samples = []
-    for qrel in stratified_qrels:
-        stratified_samples.append(
+        negative_docs = []
+
+        # Generate negative examples
+        while len(negative_docs) < num_rels_per_query:
+            potential_neg_doc_id = random.choice(list(docid_set))
+            if all(
+                potential_neg_doc_id != qrel.doc_id
+                for qrel in qrels_by_query_id[query_id]
+            ):
+                negative_docs.append(potential_neg_doc_id)
+
+        # Add both positive and negative examples to the training set
+        for pos_doc in positive_docs:
+            training_set.append((query_id, pos_doc.doc_id, 1))
+
+        for neg_doc_id in negative_docs:
+            training_set.append((query_id, neg_doc_id, 0))
+
+    return training_set
+
+
+def training_set_to_dataset(training_set, query_text_map, doc_text_map):
+    """Convert the training set to a Huggingface dataset.
+
+    Arg:
+        training_set (list): list of tuples with training set information.
+        query_text_map (dict): dictionary mapping query IDs to their texts.
+        doc_text_map (dict): dictionary mapping document IDs to their texts.
+
+    Returns:
+        Dataset: Huggingface dataset with the training set information.
+    """
+    data = []
+    for query_id, doc_id, relevance in training_set:
+        query_text = query_text_map[query_id]
+        doc_text = doc_text_map[doc_id]
+        data.append(
             {
-                "query_text": queries[qrel["query_id"]],
-                "doc_text": docs[qrel["doc_id"]],
-                "relevance": qrel["relevance"],
+                "query_id": query_id,
+                "doc_id": doc_id,
+                "query_text": query_text,
+                "doc_text": doc_text,
+                "relevance": relevance,
             }
         )
-    return stratified_samples
 
-
-# Function to load the text for queries and documents
-def load_texts(dataset):
-    """Load the text for queries and documents.
-
-    Args:
-        dataset_name: The name of the dataset to load (check ir_datasets).
-
-    Returns:
-        dict: A dictionary containing the queries and documents.
-    """
-    queries = {query.query_id: query.text for query in dataset.queries_iter()}
-    docs = {doc.doc_id: doc.text for doc in dataset.docs_iter()}
-    return queries, docs
-
-
-# Function to create dataset with text data
-def create_dataset_with_text(qrels, queries, docs):
-    """Create a dataset with text data.
-
-    Args:
-        qrels: The relevance judgments.
-        queries: The queries.
-        docs: The documents/passage.
-
-    Returns:
-        list: A list of dictionaries containing the query text, document text,
-              and relevance judgment.
-    """
-    data_with_text = []
-    for qrel in qrels:
-        query_text = queries.get(qrel["query_id"], None)
-        doc_text = docs.get(qrel["doc_id"], None)
-        if query_text is not None and doc_text is not None:
-            data_with_text.append(
-                {
-                    "query_text": query_text,
-                    "doc_text": doc_text,
-                    "relevance": qrel["relevance"],
-                }
-            )
-    return data_with_text
+    # Convert to Huggingface dataset
+    dataset = Dataset.from_dict(data)
+    return dataset
 
 
 if __name__ == "__main__":
     spinner = Halo(text="Loading datasets...", spinner="dots")
+
+    # Load the datasets
     spinner.start()
+    dataset_trec_2021 = ir_datasets.load("msmarco-passage-v2/trec-dl-2021")
+    dataset_train = ir_datasets.load("msmarco-passage-v2/train")
+    spinner.succeed("Datasets loaded.")
 
-    # Load datasets
-    trec_dataset = ir_datasets.load("msmarco-passage-v2/trec-dl-2021")
-    train_dataset = ir_datasets.load("msmarco-passage-v2/train")
-    spinner.succeed("Datasets loaded!")
+    # Map IDs to texts
+    spinner.start("Mapping IDs to texts...")
+    query_text_map_trec, doc_text_map_trec = map_ids_to_texts(dataset_trec_2021)
+    query_text_map_train, doc_text_map_train = map_ids_to_texts(dataset_train)
+    spinner.succeed("IDs mapped to texts.")
 
-    # Load query and document texts
-    spinner.start("Loading text data for trec-dl-2021 and train datasets...")
-    trec_queries, trec_docs = load_texts(trec_dataset)
-    train_queries, train_docs = load_texts(train_dataset)
-    spinner.succeed("Text data loaded!")
+    # Generate training sets
+    spinner.start("Creating depth-based training sets...")
+    depth_based_50_50 = create_training_set(dataset_trec_2021, 50, 50)
+    depth_based_50_100 = create_training_set(dataset_trec_2021, 50, 100)
+    spinner.succeed("Depth-based training sets created.")
 
-    # Convert trec-dl-2021 relevance judgments to binary format
-    spinner.start("Converting trec-dl-2021 datasets to binary format...")
-    trec_qrels_binary = list(convert_to_binary(trec_dataset.qrels_iter()))
-    spinner.succeed("trec-dl-2021 datasets converted to binary format.")
+    spinner.start("Creating shallow-based training sets...")
+    shallow_based_2500_1 = create_training_set(dataset_train, 2500, 1)
+    shallow_based_5000_1 = create_training_set(dataset_train, 5000, 1)
+    spinner.succeed("Shallow-based training sets created.")
 
-    # Negative sampling for train qrels
-    spinner.start("Creating negative samples for train qrels...")
-    combined_train_qrels = negative_sampling(
-        train_dataset.qrels_iter(), train_docs
+    # Convert to Huggingface datasets
+    spinner.start("Convert to Huggingface datasets...")
+    hf_dataset_depth_50_50 = training_set_to_dataset(
+        depth_based_50_50, query_text_map_trec, doc_text_map_trec
     )
-    spinner.succeed("Negative samples created for train qrels.")
-
-    # Creating depth-based training sets
-    spinner.start("Creating depth-based 50/50 training set...")
-    depth_50_50 = create_stratified_sample(
-        trec_qrels_binary, trec_queries, trec_docs, 50, 50, 0.5
-    )  # Adjust the ratio as needed
-    spinner.succeed(
-        f"Depth-based 50/50 training set created. Size: {len(depth_50_50)}"
+    hf_dataset_depth_50_100 = training_set_to_dataset(
+        depth_based_50_100, query_text_map_trec, doc_text_map_trec
     )
-
-    spinner.start("Creating depth-based 50/100 training set...")
-    depth_50_100 = create_stratified_sample(
-        trec_qrels_binary, trec_queries, trec_docs, 50, 100, 0.5
-    )  # Adjust the ratio as needed
-    spinner.succeed(
-        f"Depth-based 50/100 training set created. Size: {len(depth_50_100)}"
+    hf_dataset_shallow_2500_1 = training_set_to_dataset(
+        shallow_based_2500_1, query_text_map_train, doc_text_map_train
     )
-
-    # Creating shallow-based training sets
-    spinner.start("Creating shallow-based 2500/1 training set...")
-    shallow_2500_1 = create_stratified_sample(
-        combined_train_qrels, train_queries, train_docs, 2500, 1, 0.5
-    )  # Adjust the ratio as needed
-    spinner.succeed(
-        f"Shallow-based 2500/1 training set created. "
-        f"Size: {len(shallow_2500_1)}"
+    hf_dataset_shallow_5000_1 = training_set_to_dataset(
+        shallow_based_5000_1, query_text_map_train, doc_text_map_train
     )
-
-    spinner.start("Creating shallow-based 5000/1 training set...")
-    shallow_5000_1 = create_stratified_sample(
-        combined_train_qrels, train_queries, train_docs, 5000, 1, 0.5
-    )  # Adjust the ratio as needed
-    spinner.succeed(
-        f"Shallow-based 5000/1 training set created. "
-        f"Size: {len(shallow_5000_1)}"
-    )
-
-    # Convert the training sets to Hugging Face datasets
-    spinner.start("Converting training sets to Hugging Face datasets...")
-    depth_50_50_dataset = Dataset.from_pandas(pd.DataFrame(depth_50_50))
-    depth_50_100_dataset = Dataset.from_pandas(pd.DataFrame(depth_50_100))
-    shallow_2500_1_dataset = Dataset.from_pandas(pd.DataFrame(shallow_2500_1))
-    shallow_5000_1_dataset = Dataset.from_pandas(pd.DataFrame(shallow_5000_1))
-    spinner.succeed("Training sets converted to Hugging Face datasets.")
+    spinner.succeed("Huggingface datasets created.")
 
     # Save the datasets
-    spinner.start("Saving datasets to disk...")
-    depth_50_50_dataset.save_to_disk("/path/to/save/depth_50_50")
-    depth_50_100_dataset.save_to_disk("/path/to/save/depth_50_100")
-    shallow_2500_1_dataset.save_to_disk("/path/to/save/shallow_2500_1")
-    shallow_5000_1_dataset.save_to_disk("/path/to/save/shallow_5000_1")
-    spinner.succeed("Datasets saved to disk.")
+    spinner.start("Saving datasets...")
+    hf_dataset_depth_50_50.save_to_disk("../data/hf_datasets/depth_based_50_50")
+    hf_dataset_depth_50_100.save_to_disk(
+        "../data/hf_datasets/depth_based_50_100"
+    )
+    hf_dataset_shallow_2500_1.save_to_disk(
+        "../data/hf_datasets/shallow_based_2500_1"
+    )
+    hf_dataset_shallow_5000_1.save_to_disk(
+        "../data/hf_datasets/shallow_based_5000_1"
+    )
+    spinner.succeed("Huggingface datasets saved.")
