@@ -108,23 +108,17 @@ def create_training_set(dataset, num_queries, num_rels_per_query, seed=42):
         positive_docs = random.sample(
             qrels_by_query_id[qid], num_rels_per_query
         )
-        negative_docs = []
 
         # Generate negative examples
-        while len(negative_docs) < num_rels_per_query:
-            potential_neg_doc_id = random.choice(list(docid_set))
-            if all(
-                potential_neg_doc_id != qrel[0]
-                for qrel in qrels_by_query_id[qid]
-            ):
-                negative_docs.append(potential_neg_doc_id)
+        positive_docid = {doc[0] for doc in positive_docs}
+        negative_docid = docid_set - positive_docid
 
         # Add both positive and negative examples to the training set
         for pos_doc in positive_docs:
             doc_id = pos_doc[0]
             training_set.append((qid, doc_id, 1))
 
-        for neg_doc_id in negative_docs:
+        for neg_doc_id in negative_docid:
             training_set.append((qid, neg_doc_id, 0))
 
     return training_set
