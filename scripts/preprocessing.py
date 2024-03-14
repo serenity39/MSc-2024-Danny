@@ -36,8 +36,7 @@ def select_queries(qrels_by_query_id, num_queries, num_rels_per_query):
 
         # Only select queries with enough relevant documents
         if len(relevant_qrels) >= num_rels_per_query:
-            if query not in selected_queries:
-                selected_queries.append(query)
+            selected_queries.append(query)
     return selected_queries
 
 
