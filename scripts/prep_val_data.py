@@ -1,75 +1,57 @@
 """Prepare the validation data for evaluating the BERT model."""
 
-import csv
-
 import ir_datasets
 from halo import Halo
+from preprocessing import map_ids_to_texts, training_set_to_dataset
 
 
-def create_validation_set(dataset, output_csv_path):
-    """Create a validation dataset for evaluating model.
-
-    Format the validation dataset as a CSV file with the following columns:
-    - Query text
-    - Document text
-    - Relevance score
-
+def create_validation_set(dataset, qid_to_text, docid_to_text):
+    """Generates a validation set using development data.
 
     Args:
-        dataset (Dataset): Dataset object loaded from ir_datasets.
-        output_csv_path (str): Path to save the validation CSV.
+        dataset: The dataset to use.
+        qid_to_text (dict): Dictionary mapping query IDs to their texts.
+        docid_to_text (dict): Dictionary mapping document IDs to their texts.
 
     Returns:
-        file: A file containing the validation dataset in CSV format.
+        Dataset: Huggingface dataset with the validation set information.
     """
-    # Create dictionaries to map query and document IDs to text
-    qid_to_text = {}
-    docid_to_text = {}
-
-    spinner = Halo(
-        text="Populating dictionaries with queries and doc text...",
-        spinner="dots",
-    )
-    spinner.start()
-    # Populate the dictionary with the queries and documents
-    for query in dataset.queries_iter():
-        qid_to_text[query.query_id] = query.text
-    for doc in dataset.docs_iter():
-        docid_to_text[doc.doc_id] = doc.text
-    spinner.succeed("Dictionaries populated!")
-
-    spinner.start("Prepare the validation set tuples...")
-    # Prepare the validation set tuples
     validation_set = []
     for qrel in dataset.qrels_iter():
-        if qrel.relevance > 0:
-            validation_set.append((qrel.query_id, qrel.doc_id, 1))
-        else:
-            validation_set.append((qrel.query_id, qrel.doc_id, qrel.relevance))
-    spinner.succeed("Validation set tuples prepared!")
+        relevance = qrel.relevance
+        query_id = qrel.query_id
+        doc_id = qrel.doc_id
+        query_text = qid_to_text[query_id]
+        doc_text = docid_to_text[doc_id]
+        validation_set.append(
+            (query_id, doc_id, query_text, doc_text, relevance)
+        )
 
-    spinner.start("Write validation set to a CSV file...")
-    # Write validation set to a CSV file
-    with open(output_csv_path, "w", newline="", encoding="utf-8") as file:
-        csv_writer = csv.writer(file)
-        for query_id, doc_id, relevance in validation_set:
-            query_text = qid_to_text.get(query_id, "")
-            doc_text = docid_to_text.get(doc_id, "")
-            csv_writer.writerow([query_text, doc_text, relevance])
-    spinner.succeed("Validation set written to CSV file!")
+    # Convert the list of tuples to a Huggingface dataset
+    return training_set_to_dataset(validation_set, qid_to_text, docid_to_text)
 
 
 if __name__ == "__main__":
-    spinner = Halo(text="Load dataset...", spinner="dots")
+    spinner = Halo(text="Loading dataset from ir_datasets...", spinner="dots")
+
     spinner.start()
-    # Load the MS MARCO dataset for validation
-    dataset_validation = ir_datasets.load(
-        "msmarco-passage-v2/trec-dl-2021/judged"
+    # Load the dataset
+    dataset = ir_datasets.load("msmarco-passage-v2/dev2")
+    spinner.succeed("Dataset loaded")
+
+    # Create a dictionary mapping query IDs to their texts
+    spinner.start("Mapping query IDs to their texts...")
+    query_text_map, doc_text_map = map_ids_to_texts(dataset)
+    spinner.succeed("Query IDs mapped to their texts")
+
+    # Create the validation set
+    spinner.start("Creating the validation set...")
+    validation_set = create_validation_set(
+        dataset, query_text_map, doc_text_map
     )
-    spinner.succeed("Dataset loaded!")
+    spinner.succeed("Validation set created")
 
-    # Define path to save the validation data
-    validation_csv_path = "../data/validationdata/validation_data.csv"
-
-    # Create the validation set and save to CSV
-    create_validation_set(dataset_validation, validation_csv_path)
+    # Save the validation set to disk
+    spinner.start("Saving the validation set to disk...")
+    validation_set.save_to_disk("../data/hf_datasets/validation_set")
+    spinner.succeed("Validation set saved to disk")
