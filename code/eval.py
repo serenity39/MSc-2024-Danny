@@ -1,7 +1,40 @@
 """Evaluate model using Pyserini and TREC Eval."""
 
-from datasets import load_from_disk
+import random
+
+import pandas as pd
+from datasets import ClassLabel, Sequence, load_from_disk
+from IPython.display import HTML, display
+
+
+def show_random_elements(dataset, num_examples=10):
+    """Show random elements from a Huggingface dataset.
+
+    Args:
+        dataset: dataset to pick the examples from.
+        num_examples (optional): number of examples to show. Defaults to 10.
+    """
+    assert num_examples <= len(
+        dataset
+    ), "Can't pick more elements than there are in the dataset."
+    picks = []
+    for _ in range(num_examples):
+        pick = random.randint(0, len(dataset) - 1)
+        while pick in picks:
+            pick = random.randint(0, len(dataset) - 1)
+        picks.append(pick)
+
+    df = pd.DataFrame(dataset[picks])
+    for column, typ in dataset.features.items():
+        if isinstance(typ, ClassLabel):
+            df[column] = df[column].transform(lambda i: typ.names[i])
+        elif isinstance(typ, Sequence) and isinstance(typ.feature, ClassLabel):
+            df[column] = df[column].transform(
+                lambda x: [typ.feature.names[i] for i in x]
+            )
+    display(HTML(df.to_html()))
+
 
 dataset = load_from_disk("../data/hf_datasets/depth_based_50_50")
 
-print(dataset.select(range(5)))
+show_random_elements(dataset)
