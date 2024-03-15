@@ -4,7 +4,6 @@ import random
 
 import pandas as pd
 from datasets import ClassLabel, Sequence, load_from_disk
-from IPython.display import HTML, display
 
 
 def show_random_elements(dataset, num_examples=10):
@@ -32,7 +31,7 @@ def show_random_elements(dataset, num_examples=10):
             df[column] = df[column].transform(
                 lambda x: [typ.feature.names[i] for i in x]
             )
-    display(HTML(df.to_html()))
+    print(df)
 
 
 dataset = load_from_disk("../data/hf_datasets/depth_based_50_50")
