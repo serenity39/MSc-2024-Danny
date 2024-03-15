@@ -34,7 +34,7 @@ def show_random_elements(dataset, num_examples=10):
     print(df)
 
 
-def show_first_elements(dataset, num_examples=50):
+def show_first_elements(dataset, num_examples=100):
     """Show the first elements from a Huggingface dataset.
 
     Args:
@@ -58,6 +58,6 @@ def show_first_elements(dataset, num_examples=50):
 
 dataset = load_from_disk("../data/hf_datasets/depth_based_50_50")
 
-show_random_elements(dataset)
-print()
+# show_random_elements(dataset)
+# print()
 show_first_elements(dataset)
