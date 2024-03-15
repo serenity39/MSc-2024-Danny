@@ -37,7 +37,7 @@ def val_set_to_dataset(training_set):
         "doc_id": doc_ids,
         "query_text": query_texts,
         "doc_text": doc_texts,
-        "labels": relevances,
+        "relevance": relevances,
     }
 
     # Convert to Huggingface dataset
@@ -82,9 +82,9 @@ if __name__ == "__main__":
     spinner.succeed("Dataset loaded")
 
     # Create a dictionary mapping query IDs to their texts
-    spinner.start("Mapping query IDs to their texts...")
+    spinner.start("Mapping IDs to their texts...")
     query_text_map, doc_text_map = map_ids_to_texts(dataset)
-    spinner.succeed("Query IDs mapped to their texts")
+    spinner.succeed("IDs mapped to their texts")
 
     # Create the validation set
     spinner.start("Creating the validation set...")

@@ -56,7 +56,7 @@ def show_first_elements(dataset, num_examples=100):
     print(df)
 
 
-dataset = load_from_disk("../data/hf_datasets/shallow_based_2500_1/")
+dataset = load_from_disk("../data/hf_datasets/validation_set/")
 
 # show_random_elements(dataset)
 # print()
