@@ -1,8 +1,49 @@
 """Prepare the validation data for evaluating the BERT model."""
 
 import ir_datasets
+from datasets import Dataset
 from halo import Halo
-from preprocessing import map_ids_to_texts, training_set_to_dataset
+from preprocessing import map_ids_to_texts
+
+
+def val_set_to_dataset(training_set):
+    """Convert a set of data to a Huggingface dataset.
+
+    Args:
+        training_set (list): List of tuples with validation set information.
+
+    Returns:
+        Dataset: Huggingface dataset with the set information.
+    """
+    # Initialize lists to hold column data
+    query_ids = []
+    doc_ids = []
+    query_texts = []
+    doc_texts = []
+    relevances = []
+
+    # Populate the lists with data from the training or validation set
+    for entry in training_set:
+        query_id, doc_id, query_text, doc_text, relevance = entry
+        query_ids.append(query_id)
+        doc_ids.append(doc_id)
+        query_texts.append(query_text)
+        doc_texts.append(doc_text)
+        relevances.append(relevance)
+
+    # Create a dictionary that maps column names to data lists
+    data_dict = {
+        "query_id": query_ids,
+        "doc_id": doc_ids,
+        "query_text": query_texts,
+        "doc_text": doc_texts,
+        "labels": relevances,
+    }
+
+    # Convert to Huggingface dataset
+    dataset = Dataset.from_dict(data_dict)
+
+    return dataset
 
 
 def create_validation_set(dataset, qid_to_text, docid_to_text):
@@ -28,7 +69,8 @@ def create_validation_set(dataset, qid_to_text, docid_to_text):
         )
 
     # Convert the list of tuples to a Huggingface dataset
-    return training_set_to_dataset(validation_set, qid_to_text, docid_to_text)
+    validation_set = val_set_to_dataset(validation_set)
+    return validation_set
 
 
 if __name__ == "__main__":
