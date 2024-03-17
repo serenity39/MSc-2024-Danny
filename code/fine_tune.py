@@ -22,9 +22,9 @@ logging.basicConfig(
 )
 
 # Configs
-DATASET_PATH = "../data/hf_datasets/shallow_based_2500_1"
-MODEL_SAVE_PATH = "../data/results/models/shallow_based_2500_1/"
-CHECKPOINT_PATH = "../data/results/checkpoints/shallow_based_2500_1/"
+DATASET_PATH = "../data/hf_datasets/shallow_based_5000_1"
+MODEL_SAVE_PATH = "../data/results/models/shallow_based_5000_1/"
+CHECKPOINT_PATH = "../data/results/checkpoints/shallow_based_5000_1/"
 
 
 def tokenize_function(tokenizer, examples):
