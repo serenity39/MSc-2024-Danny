@@ -110,4 +110,6 @@ model.to(device)
 trainer.train()
 
 # Save the model
+logging.info("Saving the model and tokenizer...")
 trainer.save_model(MODEL_SAVE_PATH)
+tokenizer.save_pretrained(MODEL_SAVE_PATH)
