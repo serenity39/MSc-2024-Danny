@@ -1,9 +1,10 @@
 """Fine-tune a BERT model on sequence classification task."""
 
+import logging
 import os
 
 # Specify the GPU ID to use
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 import torch  # noqa: E402
 from datasets import DatasetDict, load_from_disk  # noqa: E402
@@ -12,6 +13,11 @@ from transformers import (  # noqa: E402
     BertTokenizer,
     Trainer,
     TrainingArguments,
+)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 # Configs
@@ -49,6 +55,7 @@ tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 # Tokenize the dataset
 # Tokenize the dataset
+logging.info("Tokenizing the dataset...")
 tokenized_dataset = dataset.map(
     lambda examples: tokenize_function(tokenizer, examples), batched=True
 )
@@ -59,6 +66,7 @@ tokenized_dataset.set_format(
 )
 
 # Split the dataset into training and validation sets
+logging.info("Splitting the dataset into training and validation sets...")
 tokenized_dataset = tokenized_dataset.train_test_split(test_size=0.1)
 dataset_dict = DatasetDict(
     {
@@ -85,7 +93,6 @@ training_args = TrainingArguments(
     logging_dir="../data/logs",
 )
 
-
 trainer = Trainer(
     model=model,
     args=training_args,
@@ -94,6 +101,7 @@ trainer = Trainer(
     tokenizer=tokenizer,
 )
 
+logging.info("Training the model...")
 trainer.train()
 
 # Save the model
