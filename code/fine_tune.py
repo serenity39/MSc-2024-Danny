@@ -61,9 +61,12 @@ tokenized_dataset = dataset.map(
     lambda examples: tokenize_function(tokenizer, examples), batched=True
 )
 
+# Rename the relevance column to labels
+tokenized_dataset = tokenized_dataset.map(lambda e: {"labels": e["relevance"]})
+
 tokenized_dataset.set_format(
     type="torch",
-    columns=["input_ids", "token_type_ids", "attention_mask", "relevance"],
+    columns=["input_ids", "token_type_ids", "attention_mask", "labels"],
 )
 
 # Split the dataset into training and validation sets
@@ -103,6 +106,7 @@ trainer = Trainer(
 )
 
 logging.info("Training the model...")
+model.to(device)
 trainer.train()
 
 # Save the model
