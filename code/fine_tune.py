@@ -22,9 +22,9 @@ logging.basicConfig(
 )
 
 # Configs
-DATASET_PATH = "../data/hf_datasets/depth_based_50_50"
-MODEL_SAVE_PATH = "../data/results/models/depth_based_50_50/"
-CHECKPOINT_PATH = "../data/results/checkpoints/depth_based_50_50/"
+DATASET_PATH = "../data/hf_datasets/depth_based_50_100"
+MODEL_SAVE_PATH = "../data/results/models/depth_based_50_100/"
+CHECKPOINT_PATH = "../data/results/checkpoints/depth_based_50_100/"
 
 
 def tokenize_function(tokenizer, examples):
