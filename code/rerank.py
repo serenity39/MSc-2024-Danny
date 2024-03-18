@@ -43,10 +43,12 @@ with open(run_file_path, "w") as run_file:
         # Search for the query
         hits = searcher.search(query)
 
+        print(hits[0].lucene_document)
+
         # Rerank the hits
         reranked_docs = []
         for hit in hits[:1000]:
-            doc_text = hit.lucene_document
+            doc_text = hit.raw
             inputs = tokenizer.encode_plus(
                 query,
                 doc_text,
