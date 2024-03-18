@@ -37,11 +37,13 @@ query_dataset = ir_datasets.load("msmarco-passage-v2/dev1")
 queries = {}
 for query in query_dataset.queries_iter():
     queries[query.query_id] = query.text
+logging.info(f"Loaded {len(queries)} queries.")
 
 # Setting up the run file
 run_file_path = "../data/results/runs/shallow_2500_1_run.txt"
 run_name = "shallow_2500_1"
 
+logging.info("Evaluating the model...")
 with open(run_file_path, "w") as run_file:
     for query_id, query in queries.items():
         # Search for the query
@@ -75,5 +77,6 @@ with open(run_file_path, "w") as run_file:
         # Write the reranked results to the run file
         for i, (docid, score) in enumerate(reranked_docs):
             run_file.write(f"{query_id} Q0 {docid} {i+1} {score} {run_name}\n")
+logging.info("Model evaluation complete.")
 
 logging.info(f"Run file saved to: {run_file_path}")
