@@ -9,11 +9,15 @@ import ir_datasets  # noqa: E402
 import torch  # noqa: E402
 from pyserini.search.lucene import LuceneSearcher  # noqa: E402
 from transformers import BertForSequenceClassification, BertTokenizer
+from transformers import logging as tf_logging  # noqa: E402
 
 # Set up logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+# Comment out if you want to see the warnings
+tf_logging.set_verbosity_error()
+
 
 # Ensure the GPU (if available)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -22,7 +26,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 searcher = LuceneSearcher.from_prebuilt_index("msmarco-v2-passage")
 
 # Load model and tokenizer
-model_path = "../data/results/models/depth_based_50_100/"
+model_path = "../data/results/models/shallow_based_2500_1/"
 tokenizer = BertTokenizer.from_pretrained(model_path)
 model = BertForSequenceClassification.from_pretrained(model_path)
 model.to(device)
@@ -35,8 +39,8 @@ for query in query_dataset.queries_iter():
     queries[query.query_id] = query.text
 
 # Setting up the run file
-run_file_path = "../data/results/runs/depth_50_100_run.txt"
-run_name = "depth_50_100"
+run_file_path = "../data/results/runs/shallow_2500_1_run.txt"
+run_name = "shallow_2500_1"
 
 with open(run_file_path, "w") as run_file:
     for query_id, query in queries.items():
@@ -72,4 +76,4 @@ with open(run_file_path, "w") as run_file:
         for i, (docid, score) in enumerate(reranked_docs):
             run_file.write(f"{query_id} Q0 {docid} {i+1} {score} {run_name}\n")
 
-print(f"Run file saved to: {run_file_path}")
+logging.info(f"Run file saved to: {run_file_path}")
