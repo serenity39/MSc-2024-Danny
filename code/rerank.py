@@ -43,7 +43,10 @@ with open(run_file_path, "w") as run_file:
         # Search for the query
         hits = searcher.search(query)
 
-        print(hits[0].lucene_document)
+        for field in hits.fields():
+            field_name = field.name()
+            field_value = hits.get(field_name)
+            print(f"{field_name}: {field_value}")
 
         # Rerank the hits
         reranked_docs = []
