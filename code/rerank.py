@@ -22,7 +22,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 searcher = LuceneSearcher.from_prebuilt_index("msmarco-v2-passage")
 
 # Load model and tokenizer
-model_path = "../data/results/models/depth_based_50_50/"
+model_path = "../data/results/models/depth_based_50_100/"
 tokenizer = BertTokenizer.from_pretrained(model_path)
 model = BertForSequenceClassification.from_pretrained(model_path)
 model.to(device)
@@ -35,8 +35,8 @@ for query in query_dataset.queries_iter():
     queries[query.query_id] = query.text
 
 # Setting up the run file
-run_file_path = "../data/results/runs/depth_50_50_run.txt"
-run_name = "depth_50_50"
+run_file_path = "../data/results/runs/depth_50_100_run.txt"
+run_name = "depth_50_100"
 
 with open(run_file_path, "w") as run_file:
     for query_id, query in queries.items():
@@ -46,8 +46,8 @@ with open(run_file_path, "w") as run_file:
         # Rerank the hits
         reranked_docs = []
         for hit in hits[:1000]:
-            lucene_document = hit.lucene_document
-            doc_text = lucene_document.get("raw")
+            doc = searcher.doc(hit.docid)
+            doc_text = doc.raw()
             inputs = tokenizer.encode_plus(
                 query,
                 doc_text,
