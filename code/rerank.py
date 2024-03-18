@@ -1,5 +1,6 @@
 """Evaluate model using Pyserini and TREC Eval."""
 
+import logging
 import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
@@ -11,6 +12,11 @@ from transformers import (
     BertForSequenceClassification,
     BertTokenizer,
 )  # noqa: E402
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # Ensure the GPU (if available)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -39,6 +45,12 @@ with open(run_file_path, "w") as run_file:
     for query_id, query in queries.items():
         # Search for the query
         hits = searcher.search(query)
+
+        try:
+            raw_doc = hits[0].raw
+            print(raw_doc)  # If this works, --storeRaw was used
+        except AttributeError:
+            print("The index does not contain raw documents.")
 
         # Rerank the hits
         reranked_docs = []
