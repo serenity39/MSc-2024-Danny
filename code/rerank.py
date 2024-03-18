@@ -8,10 +8,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 import ir_datasets  # noqa: E402
 import torch  # noqa: E402
 from pyserini.search.lucene import LuceneSearcher  # noqa: E402
-from transformers import (
-    BertForSequenceClassification,
-    BertTokenizer,
-)  # noqa: E402
+from transformers import BertForSequenceClassification, BertTokenizer
 
 # Set up logging
 logging.basicConfig(
@@ -46,16 +43,10 @@ with open(run_file_path, "w") as run_file:
         # Search for the query
         hits = searcher.search(query)
 
-        try:
-            raw_doc = hits[0].raw
-            print(raw_doc)  # If this works, --storeRaw was used
-        except AttributeError:
-            print("The index does not contain raw documents.")
-
         # Rerank the hits
         reranked_docs = []
         for hit in hits[:1000]:
-            doc_text = hit.raw
+            doc_text = hit.lucene_document
             inputs = tokenizer.encode_plus(
                 query,
                 doc_text,
