@@ -14,6 +14,7 @@ model_path = "../data/results/models/shallow_based_5000_1/"
 tokenizer = BertTokenizer.from_pretrained(model_path)
 model = BertForSequenceClassification.from_pretrained(model_path)
 model = model.to(device)
+model.eval()
 
 # Example text pairs
 text_pairs = [
