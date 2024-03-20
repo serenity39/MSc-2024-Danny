@@ -70,6 +70,7 @@ with open(run_file_path, "w") as run_file:
                 outputs = model(**inputs)
             probabilities = torch.softmax(outputs.logits, dim=1)
             score = probabilities[:, 1].item()
+            reranked_docs.append((hit.docid, score.item()))
 
         # Sort the documents by score for this query
         reranked_docs.sort(key=lambda x: x[1], reverse=True)
