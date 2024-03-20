@@ -51,7 +51,7 @@ with open(run_file_path, "w") as run_file:
 
         # Rerank the hits
         reranked_docs = []
-        for hit in hits[:1000]:
+        for hit in hits[:100]:
             doc = searcher.doc(hit.docid)
             doc_text = doc.raw()
             inputs = tokenizer.encode_plus(

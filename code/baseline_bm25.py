@@ -32,7 +32,7 @@ with open(run_file_path, "w") as run_file:
         hits = searcher.search(query)
 
         # Write the hits to the run file
-        for i, hit in enumerate(hits[:1000]):
+        for i, hit in enumerate(hits[:100]):
             run_file.write(
                 f"{query_id} Q0 {hit.docid} {i + 1} {hit.score} {run_name}\n"
             )
