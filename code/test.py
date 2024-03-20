@@ -10,7 +10,7 @@ from transformers import BertForSequenceClassification, BertTokenizer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load your fine-tuned model and tokenizer
-model_path = "../data/results/models/shallow_based_5000_1/"
+model_path = "../data/results/models/depth_based_50_100/"
 tokenizer = BertTokenizer.from_pretrained(model_path)
 model = BertForSequenceClassification.from_pretrained(model_path)
 model = model.to(device)
