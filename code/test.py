@@ -26,6 +26,7 @@ text_pairs = [
         "What is baron nashor?",
         "Baron Nashor is a powerful monster that requires multiple champions to defeat.",
     ),
+    ("What is baron nashor?", "Monster in League of Legends."),
     ("What is baron nashor?", "Monkeys likes bananas. They are yellow."),
 ]
 
