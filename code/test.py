@@ -40,6 +40,9 @@ for query, segment in text_pairs:
         padding=True,
     )
 
+    # Move each tensor in the inputs dictionary to the specified device
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+
     # Make predictions without calculating gradients
     with torch.no_grad():
         outputs = model(**inputs)
