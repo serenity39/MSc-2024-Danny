@@ -68,8 +68,8 @@ with open(run_file_path, "w") as run_file:
 
             with torch.no_grad():
                 outputs = model(**inputs)
-            score = outputs.logits[:, 1]
-            reranked_docs.append((hit.docid, score.item()))
+            probabilities = torch.softmax(outputs.logits, dim=1)
+            score = probabilities[:, 1].item()
 
         # Sort the documents by score for this query
         reranked_docs.sort(key=lambda x: x[1], reverse=True)
