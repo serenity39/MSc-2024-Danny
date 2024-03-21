@@ -26,7 +26,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 searcher = LuceneSearcher.from_prebuilt_index("msmarco-v2-passage")
 
 # Load model and tokenizer
-model_path = "../data/results/models/early_stopping/depth_based_50_100/"
+model_path = "../data/results/models/early_stopping/depth_based_50_200/"
 tokenizer = BertTokenizer.from_pretrained(model_path)
 model = BertForSequenceClassification.from_pretrained(model_path)
 model.to(device)
@@ -40,8 +40,8 @@ for query in query_dataset.queries_iter():
 logging.info(f"Loaded {len(queries)} queries.")
 
 # Setting up the run file
-run_file_path = "../data/results/runs/early_stopping/depth_based_50_100.txt"
-run_name = "es_depth_based_50_100"
+run_file_path = "../data/results/runs/early_stopping/depth_based_50_200_run.txt"
+run_name = "es_depth_based_50_200"
 
 logging.info("Evaluating the model...")
 with open(run_file_path, "w") as run_file:
