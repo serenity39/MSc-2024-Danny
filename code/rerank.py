@@ -26,7 +26,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 searcher = LuceneSearcher.from_prebuilt_index("msmarco-v2-passage")
 
 # Load model and tokenizer
-model_path = "../data/results/models/early_stopping/depth_based_50_100"
+model_path = "../data/results/models/early_stopping/depth_based_50_200"
 tokenizer = BertTokenizer.from_pretrained(model_path)
 model = BertForSequenceClassification.from_pretrained(model_path)
 model.to(device)
