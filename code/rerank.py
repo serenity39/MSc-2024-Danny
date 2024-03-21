@@ -26,7 +26,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 searcher = LuceneSearcher.from_prebuilt_index("msmarco-v2-passage")
 
 # Load model and tokenizer
-model_path = "../data/results/models/early_stopping/shallow_based_2500_2"
+model_path = "../data/results/models/early_stopping/shallow_based_5000_2"
 tokenizer = BertTokenizer.from_pretrained(model_path)
 model = BertForSequenceClassification.from_pretrained(model_path)
 model.to(device)
@@ -41,9 +41,9 @@ logging.info(f"Loaded {len(queries)} queries.")
 
 # Setting up the run file
 run_file_path = (
-    "../data/results/runs/early_stopping/shallow_based_2500_2_run.txt"
+    "../data/results/runs/early_stopping/shallow_based_5000_2_run.txt"
 )
-run_name = "es_shallow_based_2500_2"
+run_name = "es_shallow_based_5000_2"
 
 logging.info("Evaluating the model...")
 with open(run_file_path, "w") as run_file:
