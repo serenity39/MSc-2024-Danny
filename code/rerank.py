@@ -40,8 +40,8 @@ for query in query_dataset.queries_iter():
 logging.info(f"Loaded {len(queries)} queries.")
 
 # Setting up the run file
-run_file_path = "../data/results/runs/shallow_2500_2_run.txt"
-run_name = "shallow_2500_2"
+run_file_path = "../data/results/runs/shallow_5000_2_run.txt"
+run_name = "shallow_5000_2"
 
 logging.info("Evaluating the model...")
 with open(run_file_path, "w") as run_file:
