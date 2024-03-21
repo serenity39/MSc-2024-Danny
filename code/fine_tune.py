@@ -12,6 +12,7 @@ from datasets import DatasetDict, load_from_disk  # noqa: E402
 from transformers import (  # noqa: E402
     BertForSequenceClassification,
     BertTokenizer,
+    EarlyStoppingCallback,
     Trainer,
     TrainingArguments,
 )
@@ -22,9 +23,11 @@ logging.basicConfig(
 )
 
 # Configs
-DATASET_PATH = "../data/hf_datasets/shallow_based_5000_1"
-MODEL_SAVE_PATH = "../data/results/models/shallow_based_5000_1/"
-CHECKPOINT_PATH = "../data/results/checkpoints/shallow_based_5000_1/"
+DATASET_PATH = "../data/hf_datasets/depth_based_50_100"
+MODEL_SAVE_PATH = "../data/results/models/early_stopping/depth_based_50_100"
+CHECKPOINT_PATH = (
+    "../data/results/checkpoints/early_stopping/depth_based_50_100"
+)
 
 
 def tokenize_function(tokenizer, examples):
@@ -88,13 +91,19 @@ model = BertForSequenceClassification.from_pretrained(
 training_args = TrainingArguments(
     output_dir=CHECKPOINT_PATH,
     evaluation_strategy="epoch",
-    num_train_epochs=3,
+    num_train_epochs=5,
     learning_rate=2e-5,
     per_device_train_batch_size=8,
     per_device_eval_batch_size=8,
     warmup_steps=500,
     weight_decay=0.01,
     logging_dir="../data/logs",
+    load_best_model_at_end=True,
+    metric_for_best_model="eval_loss",
+)
+
+early_stopping = EarlyStoppingCallback(
+    early_stopping_patience=3, early_stopping_threshold=0.001
 )
 
 trainer = Trainer(
@@ -103,6 +112,7 @@ trainer = Trainer(
     train_dataset=dataset_dict["train"],
     eval_dataset=dataset_dict["validation"],
     tokenizer=tokenizer,
+    callbacks=[early_stopping],
 )
 
 logging.info("Training the model...")
