@@ -58,14 +58,17 @@ text_pairs2 = [
         "Do monkeys eat bananas?",
         "Monkey diet. In fact, wild monkeys do not eat bananas! The banana does not grow naturally; They are planted by humans, so wild monkeys don’t even get a chance to eat them. In the wild, most monkeys are omnivorous, which means they eat both trees and meat. And all monkeys eat about the same thing. Depending on their habitat, things may change, but all monkeys eat fruits, leaves, seeds, nuts, flowers, vegetables, and insects.",
     ),
+    ("Do monkeys eat bananas?", "Monkeys are yellow."),
     (
         "what is the capital of France",
         "No. Madrid is the capital of Spain. Baghdad is the capital of Iraq. What is the capital of Spain and France? There is no such thing as 'the capital of Spain and France'; they are two separate countries. The capital of Spain is Madrid, and the capital of France is Paris.",
     ),
+    ("what is the capital of France", "Madrid is the capital of Spain."),
     (
         "How fast can a cheetah run?",
         "How fast can a cheetah run. King of speed, cheetah is undoubtedly the fastest land animal on earth but still how fast can a cheetah run ? This born to run machine can easily reach speeds off about 70 mph (113 kph) and all it takes for a cheetah to reach its potential is a few strides.",
     ),
+    ("How fast can a cheetah run?", "Cheetahs are slow."),
 ]
 
 print("Model predictions:")
@@ -93,7 +96,7 @@ for query, segment in text_pairs2:
             f"Similarity between: '{query}' and '{segment}' is:\n {similarity_score}"
         )
 
-print("\nBM25 predictions:")
+print("\nBM25 hits:")
 
 searcher = LuceneSearcher.from_prebuilt_index("msmarco-v2-passage")
 
@@ -103,4 +106,4 @@ for query, _ in text_pairs2:
         doc = searcher.doc(hit.docid)
         doc_text = doc.raw()
         passage = json.loads(doc_text)["passage"]
-        print(f"Similarity between: '{query}' and '{passage}' is:\n{hit.score}")
+        print(f"Query: '{query}' \n Passage: '{passage}'")
