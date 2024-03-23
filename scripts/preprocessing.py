@@ -233,15 +233,15 @@ if __name__ == "__main__":
     # Save the datasets
     spinner.start("Saving datasets...")
     hf_dataset_depth_50_50.save_to_disk(
-        "../data/hf_datasets/test/depth_based_50_50"
-    )
-    hf_dataset_depth_50_100.save_to_disk(
         "../data/hf_datasets/test/depth_based_50_100"
     )
+    hf_dataset_depth_50_100.save_to_disk(
+        "../data/hf_datasets/test/depth_based_50_200"
+    )
     hf_dataset_shallow_2500_1.save_to_disk(
-        "../data/hf_datasets/test/shallow_based_2500_1"
+        "../data/hf_datasets/test/shallow_based_2500_2"
     )
     hf_dataset_shallow_5000_1.save_to_disk(
-        "../data/hf_datasets/test/shallow_based_5000_1"
+        "../data/hf_datasets/test/shallow_based_5000_2"
     )
     spinner.succeed("Huggingface datasets saved.")
