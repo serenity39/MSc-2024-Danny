@@ -28,6 +28,23 @@ text_pairs = [
     ),
     ("What is baron nashor?", "Monster in League of Legends."),
     ("What is baron nashor?", "Monkeys likes bananas. They are yellow."),
+    (
+        "Do monkeys eat bananas?",
+        "Chimpanzees are omnivores. They like bananas and climb trees.",
+    ),
+    ("Do monkeys eat bananas?", "Monkeys are yellow."),
+    (
+        "What is the capital of France?",
+        "Paris is the capital of the european country France.",
+    ),
+    ("What is the capital of France?", "Paris and venezuela are in Europe."),
+    ("How fast can a cheetah run?", "Cheetahs are the fastest land animal."),
+    ("How fast can a cheetah run?", "Cheetahs are slow."),
+    (
+        "How fast can a cheetah run?",
+        "Cheetahs can run up to 60 miles per hour.",
+    ),
+    ("How fast can a cheetah run?", "The fastet cat can run 60 mph."),
 ]
 
 for query, segment in text_pairs:
