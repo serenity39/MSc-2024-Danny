@@ -23,10 +23,10 @@ logging.basicConfig(
 )
 
 # Configs
-DATASET_PATH = "../data/hf_datasets/test/shallow_based_5000_2"
-MODEL_SAVE_PATH = "../data/results/models/early_stopping/shallow_based_5000_2"
+DATASET_PATH = "../data/hf_datasets/test/shallow_based_2500_2"
+MODEL_SAVE_PATH = "../data/results/models/early_stopping/shallow_based_2500_2"
 CHECKPOINT_PATH = (
-    "../data/results/checkpoints/early_stopping/shallow_based_5000_2"
+    "../data/results/checkpoints/early_stopping/shallow_based_2500_2"
 )
 
 
@@ -73,7 +73,7 @@ tokenized_dataset.set_format(
 )
 
 # To check tokenization
-for x in tokenized_dataset["input_ids"][:2]:
+for x in tokenized_dataset["input_ids"][:5]:
     print(tokenizer.decode(x))
 
 # Split the dataset into training and validation sets
