@@ -1,5 +1,6 @@
 """Test model"""
 
+import json
 import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
@@ -82,5 +83,5 @@ for query, segment in text_pairs:
     for hit in hits[:1]:
         doc = searcher.doc(hit.docid)
         doc_text = doc.raw()
-        segment = doc_text[1]
-        print(f"Similarity between: '{query}' and '{segment}' is {hit.score}")
+        passage = json.loads(doc_text)["passage"]
+        print(f"Similarity between: '{query}' and '{passage}' is {hit.score}")

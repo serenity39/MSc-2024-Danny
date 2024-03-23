@@ -1,5 +1,6 @@
 """Evaluate model using Pyserini and TREC Eval."""
 
+import json
 import logging
 import os
 
@@ -56,6 +57,7 @@ with open(run_file_path, "w") as run_file:
         for hit in hits[:100]:
             doc = searcher.doc(hit.docid)
             doc_text = doc.raw()
+            passage = json.loads(doc_text)["passage"]
             inputs = tokenizer.encode_plus(
                 query,
                 doc_text,
