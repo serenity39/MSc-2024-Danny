@@ -65,7 +65,7 @@ def map_ids_to_texts(dataset):
     return qid_to_text, docid_to_text
 
 
-def create_training_set(dataset, num_queries, num_rels_per_query, seed=42):
+def create_training_set(dataset, num_queries, num_rels_per_query, seed=13):
     """Generates a training set with equal positive and negative examples.
 
     This function creates a training set by first randomly selecting a
@@ -232,14 +232,16 @@ if __name__ == "__main__":
 
     # Save the datasets
     spinner.start("Saving datasets...")
-    hf_dataset_depth_50_50.save_to_disk("../data/hf_datasets/depth_based_50_50")
+    hf_dataset_depth_50_50.save_to_disk(
+        "../data/hf_datasets/test/depth_based_50_50"
+    )
     hf_dataset_depth_50_100.save_to_disk(
-        "../data/hf_datasets/depth_based_50_100"
+        "../data/hf_datasets/test/depth_based_50_100"
     )
     hf_dataset_shallow_2500_1.save_to_disk(
-        "../data/hf_datasets/shallow_based_2500_1"
+        "../data/hf_datasets/test/shallow_based_2500_1"
     )
     hf_dataset_shallow_5000_1.save_to_disk(
-        "../data/hf_datasets/shallow_based_5000_1"
+        "../data/hf_datasets/test/shallow_based_5000_1"
     )
     spinner.succeed("Huggingface datasets saved.")
