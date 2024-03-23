@@ -78,7 +78,7 @@ for x in tokenized_dataset["input_ids"][:2]:
 
 # Split the dataset into training and validation sets
 logging.info("Splitting the dataset into training and validation sets...")
-tokenized_dataset = tokenized_dataset.train_test_split(test_size=0.1)
+tokenized_dataset = tokenized_dataset.train_test_split(test_size=0.2)
 dataset_dict = DatasetDict(
     {
         "train": tokenized_dataset["train"],
