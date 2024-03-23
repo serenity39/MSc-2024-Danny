@@ -90,10 +90,10 @@ for query, segment in text_pairs2:
         probabilities = torch.softmax(logits, dim=1)
         similarity_score = probabilities[:, 1].item()
         print(
-            f"Similarity between: '{query}' and '{segment}' is {similarity_score}"
+            f"Similarity between: '{query}' and '{segment}' is:\n {similarity_score}"
         )
 
-print("BM25 predictions:")
+print("\nBM25 predictions:")
 
 searcher = LuceneSearcher.from_prebuilt_index("msmarco-v2-passage")
 
@@ -103,4 +103,4 @@ for query, _ in text_pairs2:
         doc = searcher.doc(hit.docid)
         doc_text = doc.raw()
         passage = json.loads(doc_text)["passage"]
-        print(f"Similarity between: '{query}' and '{passage}' is {hit.score}")
+        print(f"Similarity between: '{query}' and '{passage}' is:\n{hit.score}")
