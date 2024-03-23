@@ -23,10 +23,10 @@ logging.basicConfig(
 )
 
 # Configs
-DATASET_PATH = "../data/hf_datasets/test/shallow_based_2500_2"
-MODEL_SAVE_PATH = "../data/results/models/early_stopping/shallow_based_2500_2"
+DATASET_PATH = "../data/hf_datasets/test/depth_based_50_200"
+MODEL_SAVE_PATH = "../data/results/models/early_stopping/depth_based_50_200"
 CHECKPOINT_PATH = (
-    "../data/results/checkpoints/early_stopping/shallow_based_2500_2"
+    "../data/results/checkpoints/early_stopping/depth_based_50_200"
 )
 
 
