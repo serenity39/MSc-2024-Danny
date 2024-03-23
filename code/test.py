@@ -5,6 +5,7 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 import torch  # noqa: E402
+from pyserini.search.lucene import LuceneSearcher
 from transformers import BertForSequenceClassification, BertTokenizer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -47,6 +48,7 @@ text_pairs = [
     ("How fast can a cheetah run?", "The fastet cat can run 60 mph."),
 ]
 
+print("Model predictions:")
 for query, segment in text_pairs:
     # Tokenize inputs
     inputs = tokenizer.encode_plus(
@@ -70,3 +72,14 @@ for query, segment in text_pairs:
         print(
             f"Similarity between: '{query}' and '{segment}' is {similarity_score}"
         )
+
+print("BM25 predictions:")
+
+searcher = LuceneSearcher.from_prebuilt_index("msmarco-v2-passage")
+
+for query, segment in text_pairs:
+    hits = searcher.search(query)
+    for hit in hits[:1]:
+        doc = searcher.doc(hit.docid)
+        doc_text = doc.raw()
+        print(f"Similarity between: '{query}' and '{doc_text}' is {hit.score}")
