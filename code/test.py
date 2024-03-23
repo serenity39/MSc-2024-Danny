@@ -82,5 +82,5 @@ for query, segment in text_pairs:
     for hit in hits[:1]:
         doc = searcher.doc(hit.docid)
         doc_text = doc.raw()
-        segment = doc_text["passage"]
+        segment = doc_text[1]
         print(f"Similarity between: '{query}' and '{segment}' is {hit.score}")
