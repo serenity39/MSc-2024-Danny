@@ -49,8 +49,27 @@ text_pairs = [
     ("How fast can a cheetah run?", "The fastet cat can run 60 mph."),
 ]
 
+text_pairs2 = [
+    (
+        "What is baron nashor?",
+        "Debuff Immunity: Baron Nashor is immune to all crowd control, except stasis. Additionally, Baron Nashor's stats cannot be modified by any means. Baron's Gaze: Baron Nashor takes 50% reduced damage from the unit that it has most recently attacked for 8 seconds, reduced to 4. 5 seconds after Baron Nashor is slain.",
+    ),
+    (
+        "Do monkeys eat bananas?",
+        "Monkey diet. In fact, wild monkeys do not eat bananas! The banana does not grow naturally; They are planted by humans, so wild monkeys don’t even get a chance to eat them. In the wild, most monkeys are omnivorous, which means they eat both trees and meat. And all monkeys eat about the same thing. Depending on their habitat, things may change, but all monkeys eat fruits, leaves, seeds, nuts, flowers, vegetables, and insects.",
+    ),
+    (
+        "what is the capital of France",
+        "No. Madrid is the capital of Spain. Baghdad is the capital of Iraq. What is the capital of Spain and France? There is no such thing as 'the capital of Spain and France'; they are two separate countries. The capital of Spain is Madrid, and the capital of France is Paris.",
+    ),
+    (
+        "How fast can a cheetah run?",
+        "How fast can a cheetah run. King of speed, cheetah is undoubtedly the fastest land animal on earth but still how fast can a cheetah run ? This born to run machine can easily reach speeds off about 70 mph (113 kph) and all it takes for a cheetah to reach its potential is a few strides.",
+    ),
+]
+
 print("Model predictions:")
-for query, segment in text_pairs:
+for query, segment in text_pairs2:
     # Tokenize inputs
     inputs = tokenizer.encode_plus(
         query,
@@ -78,7 +97,7 @@ print("BM25 predictions:")
 
 searcher = LuceneSearcher.from_prebuilt_index("msmarco-v2-passage")
 
-for query, segment in text_pairs:
+for query, _ in text_pairs2:
     hits = searcher.search(query)
     for hit in hits[:1]:
         doc = searcher.doc(hit.docid)
