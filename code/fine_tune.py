@@ -8,7 +8,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 import torch  # noqa: E402
-from datasets import DatasetDict, load_from_disk  # noqa: E402
+from datasets import DatasetDict, load_from_disk, load_metric  # noqa: E402
+from sklearn.metrics import accuracy_score, f1_score  # noqa: E402
 from transformers import (  # noqa: E402
     BertForSequenceClassification,
     BertTokenizer,
@@ -48,43 +49,74 @@ def tokenize_function(tokenizer, examples):
     )
 
 
+def compute_metrics(pred):
+    labels = pred.label_ids
+    preds = pred.predictions.argmax(-1)
+    f1 = f1_score(labels, preds, average="binary")
+    acc = accuracy_score(labels, preds)
+    return {
+        "f1": f1,
+        "accuracy": acc,
+    }
+
+
 # Ensure the GPU (if available) is used for training
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load the dataset and tokenizer
 dataset = load_from_disk(DATASET_PATH)
 
+# Split the dataset into training and validation sets
+logging.info("Splitting the dataset into training and validation sets...")
+dataset_dict = dataset.train_test_split(test_size=0.2)
+
 # Initialize the tokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 # Tokenize the dataset
-# Tokenize the dataset
-logging.info("Tokenizing the dataset...")
-tokenized_dataset = dataset.map(
+logging.info("Tokenizing the training set...")
+tokenized_train_dataset = dataset_dict["train"].map(
+    lambda examples: tokenize_function(tokenizer, examples), batched=True
+)
+# Tokenize the validation set
+logging.info("Tokenizing the validation set...")
+tokenized_val_dataset = dataset_dict["validation"].map(
     lambda examples: tokenize_function(tokenizer, examples), batched=True
 )
 
 # Rename the relevance column to labels
-tokenized_dataset = tokenized_dataset.map(lambda e: {"labels": e["relevance"]})
+tokenized_train_dataset = tokenized_train_dataset.map(
+    lambda e: {"labels": e["relevance"]}
+)
+tokenized_val_dataset = tokenized_val_dataset.map(
+    lambda e: {"labels": e["relevance"]}
+)
 
-tokenized_dataset.set_format(
+# Set format for PyTorch
+tokenized_train_dataset.set_format(
+    type="torch",
+    columns=["input_ids", "token_type_ids", "attention_mask", "labels"],
+)
+tokenized_val_dataset.set_format(
     type="torch",
     columns=["input_ids", "token_type_ids", "attention_mask", "labels"],
 )
 
+
 # To check tokenization
-for x in tokenized_dataset["input_ids"][:5]:
+for x in tokenized_train_dataset["input_ids"][:5]:
     print(tokenizer.decode(x))
 
-# Split the dataset into training and validation sets
-logging.info("Splitting the dataset into training and validation sets...")
-tokenized_dataset = tokenized_dataset.train_test_split(test_size=0.2)
-dataset_dict = DatasetDict(
-    {
-        "train": tokenized_dataset["train"],
-        "validation": tokenized_dataset["test"],
-    }
-)
+
+# Debugging
+train_example = dataset_dict["train"][0]
+print("Example from the training set before tokenization:")
+print(train_example)
+
+validation_example = dataset_dict["validation"][0]
+print("Example from the validation set before tokenization:")
+print(validation_example)
+
 
 # Initialize the model
 model = BertForSequenceClassification.from_pretrained(
@@ -104,7 +136,7 @@ training_args = TrainingArguments(
     weight_decay=0.01,
     logging_dir="../data/logs",
     load_best_model_at_end=True,
-    metric_for_best_model="eval_loss",
+    metric_for_best_model="f1",
 )
 
 early_stopping = EarlyStoppingCallback(
@@ -114,9 +146,10 @@ early_stopping = EarlyStoppingCallback(
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=dataset_dict["train"],
-    eval_dataset=dataset_dict["validation"],
+    train_dataset=tokenized_train_dataset,
+    eval_dataset=tokenized_val_dataset,
     tokenizer=tokenizer,
+    compute_metrics=compute_metrics,
     callbacks=[early_stopping],
 )
 
