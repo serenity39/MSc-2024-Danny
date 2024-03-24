@@ -80,7 +80,7 @@ tokenized_train_dataset = dataset_dict["train"].map(
 )
 # Tokenize the validation set
 logging.info("Tokenizing the validation set...")
-tokenized_val_dataset = dataset_dict["validation"].map(
+tokenized_val_dataset = dataset_dict["test"].map(
     lambda examples: tokenize_function(tokenizer, examples), batched=True
 )
 
@@ -113,7 +113,7 @@ train_example = dataset_dict["train"][0]
 print("Example from the training set before tokenization:")
 print(train_example)
 
-validation_example = dataset_dict["validation"][0]
+validation_example = dataset_dict["test"][0]
 print("Example from the validation set before tokenization:")
 print(validation_example)
 
