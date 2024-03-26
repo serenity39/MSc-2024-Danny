@@ -70,6 +70,7 @@ text_pairs2 = [
     ),
     ("How fast can a cheetah run?", "Wild african cats are slow."),
     ("How fast can a cheetah run?", "Wild african cats are really fast."),
+    ("How fast can a cheetah run?", "Wild african animals are really fast"),
 ]
 
 print("Model predictions:")
