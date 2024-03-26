@@ -68,7 +68,8 @@ text_pairs2 = [
         "How fast can a cheetah run?",
         "How fast can a cheetah run. King of speed, cheetah is undoubtedly the fastest land animal on earth but still how fast can a cheetah run ? This born to run machine can easily reach speeds off about 70 mph (113 kph) and all it takes for a cheetah to reach its potential is a few strides.",
     ),
-    ("How fast can a cheetah run?", "Cheetahs are slow."),
+    ("How fast can a cheetah run?", "Wild african cats are slow."),
+    ("How fast can a cheetah run?", "Wild african cats are really fast."),
 ]
 
 print("Model predictions:")
