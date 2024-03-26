@@ -6,6 +6,9 @@ from halo import Halo
 
 DATASET_PATH = "../data/hf_datasets/msmarco_train/hf_training"
 
+# Set seed
+random.seed(42)
+
 # Load the MSMARCO dataset
 dataset = ir_datasets.load("msmarco-passage-v2/train")
 
@@ -28,10 +31,16 @@ spinner.succeed(f"Relevance judgments loaded: {len(qrels)}")
 # Prepare a set of all doc IDs for sampling of negative examples
 all_doc_ids = set(docs.keys())
 
-# Prepare data for the Hugging Face dataset
-data = []
+# Shuffle the qrels to ensure random selection
+random.shuffle(qrels)
 
+# Limit the qrels to the desired number
+desired_qrels_count = 100000
+qrels = qrels[:desired_qrels_count]
+
+# Prepare data for the Hugging Face dataset
 spinner.start("Preapring data...")
+data = []
 for qrel in qrels:
     # Get the text of the query and document using their respective IDs
     query_text = queries.get(qrel.query_id)
