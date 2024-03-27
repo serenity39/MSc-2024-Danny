@@ -78,6 +78,11 @@ for qrel in qrels:
                 "label": 0,
             }
         )
+    else:
+        print(
+            "Can't find query text or doc text for ids: "
+            + f"{qrel.query_id} and {qrel.doc_id}"
+        )
 spinner.succeed(f"Data prepared: {len(data)} examples")
 
 # Shuffle the data to mix positive and negative examples
