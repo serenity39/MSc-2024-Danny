@@ -33,7 +33,7 @@ all_doc_ids = set(docs.keys())
 
 # Prepare a set of relevant doc IDs for sampling of negative examples
 relevant_doc_ids = {qrel.doc_id for qrel in qrels}
-negative_doc_ids = all_doc_ids - relevant_doc_ids
+negative_doc_ids = list(all_doc_ids - relevant_doc_ids)
 
 # Shuffle the qrels to ensure random selection
 random.shuffle(qrels)
@@ -64,7 +64,7 @@ for qrel in qrels:
         )
 
         # Sample a negative example
-        negative_doc_id = random.choice(list(negative_doc_ids))
+        negative_doc_id = random.choice(negative_doc_ids)
         negative_doc_text = docs[negative_doc_id]
         negative_doc_ids.remove(negative_doc_id)
 
@@ -77,11 +77,6 @@ for qrel in qrels:
                 "doc_text": negative_doc_text,
                 "label": 0,
             }
-        )
-    else:
-        print(
-            "Can't find query text or doc text for ids: "
-            + f"{qrel.query_id} and {qrel.doc_id}"
         )
 spinner.succeed(f"Data prepared: {len(data)} examples")
 
